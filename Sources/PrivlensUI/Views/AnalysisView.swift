@@ -8,6 +8,10 @@ public struct AnalysisView: View {
 
     @State private var isReanalyzing = false
     @State private var currentResult: AnalysisResult
+    @State private var errorInfo: ErrorRecoveryInfo?
+    @State private var showError = false
+
+    private let errorRecovery = ErrorRecoveryService()
 
     public init(document: Document, result: AnalysisResult) {
         self.document = document
@@ -18,6 +22,9 @@ public struct AnalysisView: View {
     public var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
+                // Privacy Indicator
+                privacyIndicator
+
                 // Header
                 headerSection
 
@@ -52,28 +59,57 @@ public struct AnalysisView: View {
                 ) {
                     Image(systemName: "square.and.arrow.up")
                 }
+                .accessibilityIdentifier(AccessibilityIdentifiers.analysisShareButton)
+                .accessibilityLabel("Share analysis")
 
                 Button {
                     Task { await reanalyze() }
                 } label: {
                     if isReanalyzing {
                         ProgressView()
+                            .accessibilityLabel("Analysis in progress")
                     } else {
                         Image(systemName: "arrow.clockwise")
                     }
                 }
                 .disabled(isReanalyzing)
+                .accessibilityIdentifier(AccessibilityIdentifiers.analysisReanalyzeButton)
+                .accessibilityLabel(isReanalyzing ? "Reanalyzing document" : "Reanalyze document")
             }
+        }
+        .alert("Error", isPresented: $showError, presenting: errorInfo) { info in
+            ForEach(info.actions.filter { $0 != .none }, id: \.self) { action in
+                Button(action.displayText) {
+                    handleRecoveryAction(action)
+                }
+            }
+            Button("OK", role: .cancel) {}
+        } message: { info in
+            Text(info.message)
         }
     }
 
     // MARK: - Sections
+
+    private var privacyIndicator: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "lock.shield.fill")
+                .font(.caption)
+                .foregroundStyle(.green)
+            Text("Analyzed on your device")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(AccessibilityLabels.onDeviceProcessing)
+    }
 
     private var headerSection: some View {
         HStack {
             Image(systemName: currentResult.documentType.systemIcon)
                 .font(.title)
                 .foregroundStyle(.tint)
+                .accessibilityHidden(true)
 
             VStack(alignment: .leading) {
                 Text(currentResult.documentType.displayName)
@@ -88,6 +124,8 @@ public struct AnalysisView: View {
         .padding()
         .background(.regularMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 12))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(AccessibilityLabels.documentType(currentResult.documentType.displayName))
     }
 
     private var redFlagsSection: some View {
@@ -95,12 +133,14 @@ public struct AnalysisView: View {
             Label("Red Flags", systemImage: "exclamationmark.triangle.fill")
                 .font(.headline)
                 .foregroundStyle(.red)
+                .accessibilityLabel(AccessibilityLabels.redFlagCount(currentResult.redFlags.count))
 
             ForEach(currentResult.redFlags, id: \.self) { flag in
                 HStack(alignment: .top, spacing: 8) {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundStyle(.red)
                         .font(.subheadline)
+                        .accessibilityHidden(true)
                     Text(flag)
                         .font(.subheadline)
                 }
@@ -108,8 +148,11 @@ public struct AnalysisView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(.red.opacity(0.1))
                 .clipShape(RoundedRectangle(cornerRadius: 8))
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(AccessibilityLabels.redFlag(text: flag))
             }
         }
+        .accessibilityIdentifier(AccessibilityIdentifiers.analysisRedFlags)
     }
 
     private var summarySection: some View {
@@ -125,23 +168,30 @@ public struct AnalysisView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.regularMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 12))
+        .accessibilityIdentifier(AccessibilityIdentifiers.analysisSummary)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(AccessibilityLabels.summarySection(text: currentResult.summary))
     }
 
     private var keyInsightsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Key Insights")
                 .font(.headline)
+                .accessibilityLabel(AccessibilityLabels.insightCount(currentResult.keyInsights.count))
 
             ForEach(currentResult.keyInsights, id: \.self) { insight in
                 InsightCard(text: insight, icon: "lightbulb.fill", tint: .yellow)
+                    .accessibilityLabel(AccessibilityLabels.insight(text: insight))
             }
         }
+        .accessibilityIdentifier(AccessibilityIdentifiers.analysisInsights)
     }
 
     private var actionItemsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Action Items")
                 .font(.headline)
+                .accessibilityLabel(AccessibilityLabels.actionItemCount(currentResult.actionItems.count))
 
             ForEach(Array(currentResult.actionItems.enumerated()), id: \.offset) { index, item in
                 HStack(alignment: .top, spacing: 12) {
@@ -151,6 +201,7 @@ public struct AnalysisView: View {
                         .frame(width: 24, height: 24)
                         .background(.tint)
                         .clipShape(Circle())
+                        .accessibilityHidden(true)
 
                     Text(item)
                         .font(.subheadline)
@@ -159,8 +210,11 @@ public struct AnalysisView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(.regularMaterial)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(AccessibilityLabels.actionItem(number: index + 1, text: item))
             }
         }
+        .accessibilityIdentifier(AccessibilityIdentifiers.analysisActionItems)
     }
 
     // MARK: - Actions
@@ -193,6 +247,8 @@ public struct AnalysisView: View {
             }
         }
 
+        text += "\nAnalyzed with Privlens - 100% on-device, 100% private."
+
         return text
     }
 
@@ -208,7 +264,17 @@ public struct AnalysisView: View {
             )
             currentResult = newResult
         } catch {
-            // Keep existing result on failure
+            errorInfo = errorRecovery.recoveryInfo(for: error)
+            showError = true
+        }
+    }
+
+    private func handleRecoveryAction(_ action: RecoveryAction) {
+        switch action {
+        case .retry:
+            Task { await reanalyze() }
+        default:
+            break
         }
     }
 }
