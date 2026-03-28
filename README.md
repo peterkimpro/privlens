@@ -595,24 +595,28 @@ A/B test reducing to 1 free analysis/month, or shortening reverse trial to 3 day
 - OCR supports both `CGImage` and raw `Data` (JPEG/PNG) input paths
 - Classifier uses keyword-frequency scoring (no ML model needed) — fast, deterministic, testable
 
-### Phase 2 -- AI Analysis with Apple Foundation Models 🔜 NEXT
+### Phase 2 -- AI Analysis with Apple Foundation Models ✅ COMPLETE (March 2026)
 
-| Milestone | Target Date | Deliverable |
-|-----------|-------------|-------------|
-| **Foundation Models proof-of-concept** | April 2026 | Scan a real medical bill → get plain-English summary on device |
-| **Chunking engine** | April-May 2026 | Handle 30-page documents within 4K token limit |
-| **Document type prompt templates** | May 2026 | Optimized prompts for medical bills, leases, insurance |
-| **Analysis results UI** | May 2026 | Results screens (summary, key terms, red flags, actions) |
-| **Source attribution** | May 2026 | Link AI insights back to source text locations |
-| **SwiftData persistence** | June 2026 | Save analyzed documents to local storage |
+- [x] **ChunkingService** — Sentence-boundary-aware text splitting into ~4K char chunks with configurable overlap
+- [x] **TextChunk model** — Chunk indexing with character-range tracking for source attribution
+- [x] **AttributionService** — Fuzzy keyword matching to link AI insights back to source text locations
+- [x] **AnalysisResult model** — Structured Insight + SourceAttribution types with severity levels
+- [x] **AIAnalysisService** — Apple Foundation Models integration with `LanguageModelSession`, per-chunk analysis + meta-summary
+- [x] **AnalysisCoordinator** — Orchestrates full pipeline: chunk → analyze → attribute → persist via StorageService
+- [x] **PromptTemplates** — Type-specific prompt engineering for medical bills, leases, insurance, contracts, tax forms
+- [x] **Unit tests** — ChunkingService (4 cases), AnalysisResult (serialization), AnalysisCoordinator (pipeline)
+- [x] **CI** — Dual-platform passing: Linux SPM + macOS iOS Simulator build & test
 
-### Phase 3 -- Document Library + Paywall (Target: June-July 2026)
+### Phase 3 -- TestFlight Prep ✅ COMPLETE (March 2026)
 
-| Milestone | Target Date | Deliverable |
-|-----------|-------------|-------------|
-| **Document library** | June 2026 | SwiftData persistence, folders, search |
-| **Paywall** | June 2026 | StoreKit 2 + RevenueCat: reverse trial, soft paywall |
-| **Beta (TestFlight)** | June-July 2026 | During iOS 26 developer beta period |
+- [x] **App Store Connect metadata** — Full app description, keywords (87/100 chars), promotional text, review notes
+- [x] **Privacy Nutrition Label** — All "Not Collected" responses documented (strongest possible label)
+- [x] **Screenshot plan** — 8 required screenshots defined with device sizes
+- [x] **Xcode project config** — Bundle ID (`com.peterkimpro.privlens`), version 1.0.0, build 1, iOS 26.0 minimum
+- [x] **Info.plist** — Camera + Photo Library usage descriptions, arm64 requirement, launch screen
+- [x] **TestFlight guide** — Step-by-step `TESTFLIGHT.md` for Mac submission (signing, archive, upload, testing)
+- [x] **Metadata reference file** — `App/Privlens/Metadata/AppStoreMetadata.swift` with all App Store copy
+- [x] **Privacy/legal URL placeholders** — privlens.com/privacy, GitHub Issues support URL
 
 ### Phase 4 -- Polish & Launch (Target: Aug-Sept 2026)
 
