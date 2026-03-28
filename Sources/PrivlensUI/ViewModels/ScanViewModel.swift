@@ -11,13 +11,18 @@ public final class ScanViewModel {
     public var latestResult: AnalysisResult?
     public var latestDocument: Document?
     public var errorMessage: String?
+    /// Set to true once a document has been saved — drives post-scan navigation.
+    public var didSaveDocument = false
 
     private let ocrService = OCRService()
     private let classifier = DocumentClassifier()
     private let aiService = AIAnalysisService()
     private let scannerService = ScannerService()
+    private let store: DocumentStore?
 
-    public init() {}
+    public init(store: DocumentStore? = nil) {
+        self.store = store
+    }
 
     /// Whether the device supports VisionKit document scanning.
     public var isScanningSupported: Bool {
@@ -30,9 +35,13 @@ public final class ScanViewModel {
 
         isProcessing = true
         processingStatus = "Extracting text..."
+        didSaveDocument = false
         defer { isProcessing = false }
 
         do {
+            // Convert scanned pages to JPEG data for persistence
+            let pageData = ScannerService.convertToData(images)
+
             // OCR all pages and combine
             var allText = ""
             for (index, image) in images.enumerated() {
@@ -55,10 +64,19 @@ public final class ScanViewModel {
             processingStatus = "Analyzing with on-device AI..."
             let result = try await aiService.analyzeDocument(text: trimmedText, type: docType)
 
-            // Convert scanned pages to JPEG data for storage
-            let pageData = ScannerService.convertToData(images)
+            // Generate thumbnail from first page
+            var thumbnailData: Data?
+            if let firstImage = images.first {
+                let thumb = UIImage(cgImage: firstImage)
+                let maxDim: CGFloat = 300
+                let scale = min(maxDim / thumb.size.width, maxDim / thumb.size.height, 1.0)
+                let newSize = CGSize(width: thumb.size.width * scale, height: thumb.size.height * scale)
+                let renderer = UIGraphicsImageRenderer(size: newSize)
+                let resized = renderer.image { _ in thumb.draw(in: CGRect(origin: .zero, size: newSize)) }
+                thumbnailData = resized.jpegData(compressionQuality: 0.6)
+            }
 
-            // Create document with scanned page data
+            // Create document with page images
             let document = Document(
                 title: "\(docType.displayName) - \(Date().formatted(date: .abbreviated, time: .omitted))",
                 rawText: trimmedText,
@@ -66,12 +84,20 @@ public final class ScanViewModel {
                 analysisResult: result.summary,
                 redFlags: result.redFlags,
                 keyInsights: result.keyInsights,
+                thumbnailData: thumbnailData,
                 pageImageData: pageData,
                 pageCount: images.count
             )
 
+            // Persist to DocumentStore
+            processingStatus = "Saving document..."
+            if let store {
+                try store.save(document)
+            }
+
             latestDocument = document
             latestResult = result
+            didSaveDocument = true
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -83,6 +109,14 @@ public final class ScanViewModel {
         defer { isProcessing = false }
 
         errorMessage = "Photo import will be available when running on device."
+    }
+
+    /// Resets state so the user can scan another document.
+    public func reset() {
+        latestResult = nil
+        latestDocument = nil
+        didSaveDocument = false
+        errorMessage = nil
     }
 }
 
