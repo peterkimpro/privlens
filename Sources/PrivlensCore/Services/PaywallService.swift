@@ -97,7 +97,19 @@ public final class PaywallService: PaywallServiceProtocol, @unchecked Sendable {
         if currentTier == .pro {
             return
         }
+        recordAnalysisSync()
+    }
 
+    public func remainingFreeAnalyses() async -> Int {
+        if currentTier == .pro {
+            return Int.max
+        }
+        return remainingFreeAnalysesSync()
+    }
+
+    // MARK: - Synchronous Lock-Protected Helpers
+
+    private func recordAnalysisSync() {
         lock.lock()
         defer { lock.unlock() }
 
@@ -110,7 +122,6 @@ public final class PaywallService: PaywallServiceProtocol, @unchecked Sendable {
                 monthYear: currentMonthYear
             )
         } else {
-            // New month — reset counter
             record = UsageRecord(
                 analysisCount: 1,
                 monthYear: currentMonthYear
@@ -120,11 +131,7 @@ public final class PaywallService: PaywallServiceProtocol, @unchecked Sendable {
         saveUsageRecord(record)
     }
 
-    public func remainingFreeAnalyses() async -> Int {
-        if currentTier == .pro {
-            return Int.max
-        }
-
+    private func remainingFreeAnalysesSync() -> Int {
         lock.lock()
         defer { lock.unlock() }
 
@@ -132,7 +139,6 @@ public final class PaywallService: PaywallServiceProtocol, @unchecked Sendable {
         let record = loadUsageRecord()
 
         if record.monthYear != currentMonthYear {
-            // New month — full quota available
             return Self.freeMonthlyLimit
         }
 
