@@ -34,7 +34,7 @@ public enum DocumentType: String, Codable, Sendable, CaseIterable {
 
 #if canImport(SwiftData)
 @Model
-public final class Document: @unchecked Sendable {
+public final class Document {
     public var id: UUID
     public var title: String
     public var rawText: String

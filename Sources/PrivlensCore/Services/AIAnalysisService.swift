@@ -1,6 +1,6 @@
 import Foundation
 
-#if canImport(FoundationModels)
+#if ENABLE_FOUNDATION_MODELS
 import FoundationModels
 
 public final class AIAnalysisService: Sendable {
