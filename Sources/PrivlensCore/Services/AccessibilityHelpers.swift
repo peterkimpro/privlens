@@ -74,7 +74,7 @@ public enum AccessibilityLabels: Sendable {
     }
 
     public static func freeAnalysesRemaining(_ count: Int) -> String {
-        "\(count) free analysis\(count == 1 ? "" : "es") remaining this month."
+        "\(count) free \(count == 1 ? "analysis" : "analyses") remaining this month."
     }
 
     public static let upgradeToPro = "Upgrade to Pro for unlimited analyses"
