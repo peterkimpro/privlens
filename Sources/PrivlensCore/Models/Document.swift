@@ -2,18 +2,10 @@ import Foundation
 #if canImport(SwiftData)
 import SwiftData
 #endif
-#if canImport(FoundationModels)
-import FoundationModels
-#endif
 
 // MARK: - DocumentType
 
-#if canImport(FoundationModels)
-@Generable
 public enum DocumentType: String, Codable, Sendable, CaseIterable {
-#else
-public enum DocumentType: String, Codable, Sendable, CaseIterable {
-#endif
     case medicalBill
     case lease
     case insurance
@@ -42,7 +34,7 @@ public enum DocumentType: String, Codable, Sendable, CaseIterable {
 
 #if canImport(SwiftData)
 @Model
-public final class Document {
+public final class Document: @unchecked Sendable {
     public var id: UUID
     public var title: String
     public var rawText: String
