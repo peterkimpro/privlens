@@ -3,7 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "Privlens",
-    platforms: [.iOS(.v26), .macOS(.v15)],
+    platforms: [.iOS(.v26), .macOS(.v26)],
     products: [
         .library(name: "PrivlensCore", targets: ["PrivlensCore"]),
         .library(name: "PrivlensUI", targets: ["PrivlensUI"]),

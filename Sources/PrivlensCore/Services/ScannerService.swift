@@ -87,7 +87,7 @@ public enum ScannerError: Error, LocalizedError, Sendable {
 #endif
 
 /// A mock scanner for testing and previews.
-public final class MockScannerService: DocumentScannerProtocol {
+public final class MockScannerService: DocumentScannerProtocol, @unchecked Sendable {
     public var isSupported: Bool { true }
     public var mockImageData: [Data]
 
