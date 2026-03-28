@@ -178,6 +178,8 @@ public final class DocumentStore: @unchecked Sendable {
 
     private var documents: [Document] = []
     private var folders: [Folder] = []
+    /// Tracks document-to-folder assignments (document ID → folder ID).
+    private var folderAssignments: [UUID: UUID] = [:]
     private let lock = NSLock()
 
     public init() throws {}
@@ -186,6 +188,10 @@ public final class DocumentStore: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         documents.append(document)
+        // If the document was created with a folder string, treat it as a folder ID.
+        if let folderStr = document.folder, let folderID = UUID(uuidString: folderStr) {
+            folderAssignments[document.id] = folderID
+        }
     }
 
     public func fetchAll() throws -> [Document] {
@@ -214,6 +220,7 @@ public final class DocumentStore: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         documents.removeAll { $0.id == document.id }
+        folderAssignments.removeValue(forKey: document.id)
     }
 
     public func update(_ document: Document) throws {
@@ -247,6 +254,10 @@ public final class DocumentStore: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         folders.removeAll { $0.id == folder.id }
+        // Unfile all documents in this folder
+        for (docID, fID) in folderAssignments where fID == folder.id {
+            folderAssignments.removeValue(forKey: docID)
+        }
     }
 
     public func updateFolder(_ folder: Folder) throws {
@@ -254,14 +265,20 @@ public final class DocumentStore: @unchecked Sendable {
     }
 
     public func moveDocument(_ document: Document, to folder: Folder?) throws {
-        // In-memory stub: folder association is stored as a string on the Linux Document.
+        lock.lock()
+        defer { lock.unlock() }
+        if let folder {
+            folderAssignments[document.id] = folder.id
+        } else {
+            folderAssignments.removeValue(forKey: document.id)
+        }
     }
 
     public func fetchDocuments(in folder: Folder) throws -> [Document] {
         lock.lock()
         defer { lock.unlock() }
         return documents
-            .filter { $0.folder == folder.name }
+            .filter { folderAssignments[$0.id] == folder.id }
             .sorted { $0.dateScanned > $1.dateScanned }
     }
 
@@ -269,7 +286,7 @@ public final class DocumentStore: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         return documents
-            .filter { $0.folder == nil }
+            .filter { folderAssignments[$0.id] == nil }
             .sorted { $0.dateScanned > $1.dateScanned }
     }
 
@@ -278,6 +295,7 @@ public final class DocumentStore: @unchecked Sendable {
     public func fullTextSearch(query: String) throws -> [Document] {
         lock.lock()
         defer { lock.unlock() }
+        guard !query.isEmpty else { return [] }
         let lowered = query.lowercased()
         return documents.filter {
             $0.title.lowercased().contains(lowered) ||
