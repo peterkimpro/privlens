@@ -3,11 +3,14 @@ import SwiftUI
 import UIKit
 import VisionKit
 import PrivlensCore
+import PhotosUI
 
 public struct ScannerView: View {
     @State private var viewModel = ScanViewModel()
     @State private var showScanner = false
     @State private var showPhotoPicker = false
+
+    private let scannerService = ScannerService()
 
     public init() {}
 
@@ -39,6 +42,7 @@ public struct ScannerView: View {
                         } label: {
                             Label("Scan Document", systemImage: "doc.viewfinder")
                         }
+                        .disabled(!scannerService.isSupported)
 
                         Button {
                             showPhotoPicker = true
@@ -52,7 +56,7 @@ public struct ScannerView: View {
                 }
             }
             .sheet(isPresented: $showScanner) {
-                DocumentCameraRepresentable(
+                DocumentScannerView(
                     onScan: { images in
                         showScanner = false
                         Task {
@@ -121,6 +125,7 @@ public struct ScannerView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
+                .disabled(!scannerService.isSupported)
 
                 Button {
                     showPhotoPicker = true
@@ -184,68 +189,6 @@ public struct ScannerView: View {
         .background(.regularMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 16))
     }
-}
-
-// MARK: - VNDocumentCameraViewController Representable
-
-struct DocumentCameraRepresentable: UIViewControllerRepresentable {
-    let onScan: ([CGImage]) -> Void
-    let onCancel: () -> Void
-
-    func makeUIViewController(context: Context) -> VNDocumentCameraViewController {
-        let controller = VNDocumentCameraViewController()
-        controller.delegate = context.coordinator
-        return controller
-    }
-
-    func updateUIViewController(_ uiViewController: VNDocumentCameraViewController, context: Context) {}
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator(onScan: onScan, onCancel: onCancel)
-    }
-
-    final class Coordinator: NSObject, VNDocumentCameraViewControllerDelegate {
-        let onScan: ([CGImage]) -> Void
-        let onCancel: () -> Void
-
-        init(onScan: @escaping ([CGImage]) -> Void, onCancel: @escaping () -> Void) {
-            self.onScan = onScan
-            self.onCancel = onCancel
-        }
-
-        func documentCameraViewController(
-            _ controller: VNDocumentCameraViewController,
-            didFinishWith scan: VNDocumentCameraScan
-        ) {
-            var images: [CGImage] = []
-            for index in 0..<scan.pageCount {
-                let uiImage = scan.imageOfPage(at: index)
-                if let cgImage = uiImage.cgImage {
-                    images.append(cgImage)
-                }
-            }
-            onScan(images)
-        }
-
-        func documentCameraViewControllerDidCancel(_ controller: VNDocumentCameraViewController) {
-            onCancel()
-        }
-
-        func documentCameraViewController(
-            _ controller: VNDocumentCameraViewController,
-            didFailWithError error: Error
-        ) {
-            onCancel()
-        }
-    }
-}
-
-// MARK: - PhotosPicker extension
-
-import PhotosUI
-
-private extension ScannerView {
-    // The photosPicker modifier is used directly in the body.
 }
 
 #endif

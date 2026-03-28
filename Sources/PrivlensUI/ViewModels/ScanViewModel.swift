@@ -15,9 +15,16 @@ public final class ScanViewModel {
     private let ocrService = OCRService()
     private let classifier = DocumentClassifier()
     private let aiService = AIAnalysisService()
+    private let scannerService = ScannerService()
 
     public init() {}
 
+    /// Whether the device supports VisionKit document scanning.
+    public var isScanningSupported: Bool {
+        scannerService.isSupported
+    }
+
+    /// Process scanned page images through the full pipeline: OCR → classify → AI analyze.
     public func processScannedImages(_ images: [CGImage]) async {
         guard !images.isEmpty else { return }
 
@@ -36,7 +43,7 @@ public final class ScanViewModel {
 
             let trimmedText = allText.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !trimmedText.isEmpty else {
-                errorMessage = "No text found in the scanned document."
+                errorMessage = ScannerError.noTextFound.localizedDescription
                 return
             }
 
@@ -48,14 +55,19 @@ public final class ScanViewModel {
             processingStatus = "Analyzing with on-device AI..."
             let result = try await aiService.analyzeDocument(text: trimmedText, type: docType)
 
-            // Create document
+            // Convert scanned pages to JPEG data for storage
+            let pageData = ScannerService.convertToData(images)
+
+            // Create document with scanned page data
             let document = Document(
                 title: "\(docType.displayName) - \(Date().formatted(date: .abbreviated, time: .omitted))",
                 rawText: trimmedText,
                 documentType: docType,
                 analysisResult: result.summary,
                 redFlags: result.redFlags,
-                keyInsights: result.keyInsights
+                keyInsights: result.keyInsights,
+                pageImageData: pageData,
+                pageCount: images.count
             )
 
             latestDocument = document
@@ -66,7 +78,6 @@ public final class ScanViewModel {
     }
 
     public func processPhotoPickerItem(_ item: Any) async {
-        // PhotosPickerItem handling will be implemented with PhotosUI integration
         isProcessing = true
         processingStatus = "Importing photo..."
         defer { isProcessing = false }
@@ -79,6 +90,9 @@ public final class ScanViewModel {
 
 // Stub for non-Apple platforms
 import Foundation
+#if canImport(PrivlensCore)
+import PrivlensCore
+#endif
 
 @MainActor
 public final class ScanViewModel {
@@ -87,6 +101,8 @@ public final class ScanViewModel {
     public var latestResult: AnalysisResult?
     public var latestDocument: Document?
     public var errorMessage: String?
+
+    public var isScanningSupported: Bool { false }
 
     public init() {}
 }

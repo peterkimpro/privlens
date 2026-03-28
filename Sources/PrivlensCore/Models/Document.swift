@@ -45,6 +45,11 @@ public final class Document {
     public var keyInsights: [String]
     @Attribute(.externalStorage)
     public var thumbnailData: Data?
+    /// JPEG data for each scanned page, stored externally to keep the DB lean.
+    @Attribute(.externalStorage)
+    public var pageImageData: [Data]
+    /// Number of pages in the original scan.
+    public var pageCount: Int
 
     public var documentType: DocumentType {
         get { DocumentType(rawValue: documentTypeRaw) ?? .unknown }
@@ -60,7 +65,9 @@ public final class Document {
         analysisResult: String? = nil,
         redFlags: [String] = [],
         keyInsights: [String] = [],
-        thumbnailData: Data? = nil
+        thumbnailData: Data? = nil,
+        pageImageData: [Data] = [],
+        pageCount: Int = 0
     ) {
         self.id = id
         self.title = title
@@ -71,6 +78,8 @@ public final class Document {
         self.redFlags = redFlags
         self.keyInsights = keyInsights
         self.thumbnailData = thumbnailData
+        self.pageImageData = pageImageData
+        self.pageCount = pageCount
     }
 }
 #else
@@ -84,6 +93,8 @@ public final class Document: Codable, Sendable, Identifiable {
     public var redFlags: [String]
     public var keyInsights: [String]
     public var thumbnailData: Data?
+    public var pageImageData: [Data]
+    public var pageCount: Int
 
     public var documentType: DocumentType {
         get { DocumentType(rawValue: documentTypeRaw) ?? .unknown }
@@ -98,7 +109,9 @@ public final class Document: Codable, Sendable, Identifiable {
         analysisResult: String? = nil,
         redFlags: [String] = [],
         keyInsights: [String] = [],
-        thumbnailData: Data? = nil
+        thumbnailData: Data? = nil,
+        pageImageData: [Data] = [],
+        pageCount: Int = 0
     ) {
         self.id = id
         self.title = title
@@ -109,6 +122,8 @@ public final class Document: Codable, Sendable, Identifiable {
         self.redFlags = redFlags
         self.keyInsights = keyInsights
         self.thumbnailData = thumbnailData
+        self.pageImageData = pageImageData
+        self.pageCount = pageCount
     }
 }
 #endif
