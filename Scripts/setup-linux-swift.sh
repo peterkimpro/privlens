@@ -1,7 +1,7 @@
 #!/bin/bash
 # setup-linux-swift.sh — Install Swift toolchain on your Linux VDI
 # This lets you build/test non-UI Swift code locally (no Mac needed)
-# Usage: bash scripts/setup-linux-swift.sh
+# Usage: bash Scripts/setup-linux-swift.sh
 
 set -euo pipefail
 

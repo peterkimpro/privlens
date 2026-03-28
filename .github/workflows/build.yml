@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  build-and-test:
+  spm-build:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
@@ -16,24 +16,8 @@ jobs:
         with:
           xcode-version: '26.3'
 
-      - name: Build
-        run: |
-          xcodebuild build \
-            -scheme Privlens \
-            -destination 'platform=iOS Simulator,name=iPhone 16 Pro' \
-            -skipPackagePluginValidation
+      - name: Build SPM Package
+        run: swift build
 
       - name: Run Tests
-        run: |
-          xcodebuild test \
-            -scheme Privlens \
-            -destination 'platform=iOS Simulator,name=iPhone 16 Pro' \
-            -skipPackagePluginValidation \
-            -resultBundlePath TestResults.xcresult
-
-      - name: Upload Test Results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results
-          path: TestResults.xcresult
+        run: swift test
