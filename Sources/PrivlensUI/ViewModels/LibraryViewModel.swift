@@ -73,6 +73,7 @@ public final class LibraryViewModel {
 #else
 
 import Foundation
+import PrivlensCore
 
 @MainActor
 public final class LibraryViewModel {
