@@ -1,38 +1,175 @@
 import Foundation
 
+// MARK: - Protocol
+
+/// Protocol for AI-powered document analysis, enabling testability.
+public protocol AIAnalysisServiceProtocol: Sendable {
+    /// Analyzes a single text chunk and returns extracted insights.
+    func analyzeChunk(_ chunk: TextChunk, documentType: String?) async throws -> [Insight]
+
+    /// Generates a human-readable summary from a collection of insights.
+    func generateSummary(from insights: [Insight], documentContext: String?) async throws -> String
+
+    /// Analyzes a full document by processing all chunks and aggregating results.
+    func analyzeDocument(chunks: [TextChunk], documentType: String?) async throws -> AnalysisResult
+}
+
+// MARK: - Errors
+
+public enum AIAnalysisError: Error, LocalizedError, Sendable {
+    case unavailable
+    case noChunksProvided
+    case chunkAnalysisFailed(chunkIndex: Int, underlying: String)
+
+    public var errorDescription: String? {
+        switch self {
+        case .unavailable:
+            return "AI analysis is not available on this platform. Requires Apple Foundation Models on iOS 26+."
+        case .noChunksProvided:
+            return "No text chunks were provided for analysis."
+        case .chunkAnalysisFailed(let index, let reason):
+            return "Analysis failed for chunk \(index): \(reason)"
+        }
+    }
+}
+
+// MARK: - Implementation
+
 #if ENABLE_FOUNDATION_MODELS
 import FoundationModels
 
-public final class AIAnalysisService: Sendable {
+public final class AIAnalysisService: AIAnalysisServiceProtocol, Sendable {
 
     public init() {}
 
-    /// Analyzes document text using Apple Foundation Models, returning structured insights.
-    public func analyzeDocument(text: String, type: DocumentType) async throws -> AnalysisResult {
+    // MARK: - AIAnalysisServiceProtocol
+
+    public func analyzeChunk(_ chunk: TextChunk, documentType: String?) async throws -> [Insight] {
         let session = LanguageModelSession()
+        let prompt = PromptTemplates.chunkAnalysisPrompt(text: chunk.text, documentType: documentType)
 
-        let prompt = buildPrompt(for: type, text: text)
+        let response = try await session.respond(to: prompt, generating: ChunkAnalysisOutput.self)
+        let output = response.content
 
-        let response = try await session.respond(
-            to: prompt,
-            generating: AnalysisResult.self
-        )
+        return convertToInsights(output, chunk: chunk)
+    }
 
+    public func generateSummary(from insights: [Insight], documentContext: String?) async throws -> String {
+        let session = LanguageModelSession()
+        let insightDescriptions = insights.map { "[\($0.category.rawValue)] \($0.title): \($0.description)" }
+        let prompt = PromptTemplates.summaryPrompt(insights: insightDescriptions, documentType: documentContext)
+
+        let response = try await session.respond(to: prompt)
         return response.content
     }
 
-    // MARK: - Prompt Templates
+    public func analyzeDocument(chunks: [TextChunk], documentType: String?) async throws -> AnalysisResult {
+        guard !chunks.isEmpty else {
+            throw AIAnalysisError.noChunksProvided
+        }
 
-    private func buildPrompt(for type: DocumentType, text: String) -> String {
-        let typeSpecificInstructions = typeInstructions(for: type)
+        // Analyze each chunk and collect insights
+        var allInsights: [Insight] = []
+        for chunk in chunks {
+            let chunkInsights = try await analyzeChunk(chunk, documentType: documentType)
+            allInsights.append(contentsOf: chunkInsights)
+        }
 
+        // Generate a meta-summary from all insights
+        let summary = try await generateSummary(from: allInsights, documentContext: documentType)
+
+        // Partition insights into categories for the AnalysisResult
+        let keyInsightStrings = allInsights
+            .filter { $0.category != .risk && $0.category != .recommendation }
+            .map { "\($0.title): \($0.description)" }
+
+        let redFlagStrings = allInsights
+            .filter { $0.category == .risk }
+            .map { "\($0.title): \($0.description)" }
+
+        let actionItemStrings = allInsights
+            .filter { $0.category == .recommendation || $0.category == .obligation }
+            .map { "\($0.title): \($0.description)" }
+
+        let detectedType = detectDocumentType(from: documentType)
+
+        return AnalysisResult(
+            summary: summary,
+            keyInsights: keyInsightStrings,
+            redFlags: redFlagStrings,
+            actionItems: actionItemStrings,
+            documentType: detectedType
+        )
+    }
+
+    // MARK: - Legacy single-pass analysis
+
+    /// Analyzes document text in a single pass using Apple Foundation Models.
+    /// Retained for backward compatibility with existing callers.
+    public func analyzeDocument(text: String, type: DocumentType) async throws -> AnalysisResult {
+        let session = LanguageModelSession()
+        let prompt = buildLegacyPrompt(for: type, text: text)
+        let response = try await session.respond(to: prompt, generating: AnalysisResult.self)
+        return response.content
+    }
+
+    // MARK: - Private Helpers
+
+    private func convertToInsights(_ output: ChunkAnalysisOutput, chunk: TextChunk) -> [Insight] {
+        let count = min(
+            output.insightTitles.count,
+            min(output.insightDescriptions.count,
+                min(output.insightCategories.count,
+                    min(output.insightConfidences.count, output.sourceQuotes.count)))
+        )
+
+        return (0..<count).map { i in
+            let category = InsightCategory(rawValue: output.insightCategories[i]) ?? .other
+            let confidence = max(0.0, min(1.0, output.insightConfidences[i]))
+            let quote = output.sourceQuotes[i]
+
+            // Find the quote offset within the chunk text for precise attribution
+            let startOffset: Int
+            let endOffset: Int
+            if let range = chunk.text.range(of: quote) {
+                startOffset = chunk.text.distance(from: chunk.text.startIndex, to: range.lowerBound)
+                endOffset = chunk.text.distance(from: chunk.text.startIndex, to: range.upperBound)
+            } else {
+                startOffset = 0
+                endOffset = min(quote.count, chunk.text.count)
+            }
+
+            let attribution = SourceAttribution(
+                chunkIndex: chunk.metadata.chunkIndex,
+                startOffset: startOffset,
+                endOffset: endOffset,
+                matchedText: quote,
+                pageIndex: chunk.metadata.sourcePageIndex
+            )
+
+            return Insight(
+                title: output.insightTitles[i],
+                description: output.insightDescriptions[i],
+                category: category,
+                confidence: confidence,
+                sourceAttributions: [attribution]
+            )
+        }
+    }
+
+    private func detectDocumentType(from typeString: String?) -> DocumentType {
+        guard let typeString else { return .unknown }
+        return DocumentType(rawValue: typeString)
+            ?? DocumentType.allCases.first { $0.displayName.lowercased() == typeString.lowercased() }
+            ?? .unknown
+    }
+
+    private func buildLegacyPrompt(for type: DocumentType, text: String) -> String {
         return """
         You are a document analysis assistant specializing in consumer protection. \
         Analyze the following document text and provide a structured analysis.
 
         Document Type: \(type.displayName)
-
-        \(typeSpecificInstructions)
 
         General instructions:
         - Provide a concise 2-3 sentence summary
@@ -47,73 +184,89 @@ public final class AIAnalysisService: Sendable {
         ---
         """
     }
-
-    private func typeInstructions(for type: DocumentType) -> String {
-        switch type {
-        case .medicalBill:
-            return """
-            Medical Bill Analysis Instructions:
-            - Check if the billed amount matches typical costs for the procedures listed
-            - Look for duplicate charges or unbundled services (billing separately for things usually billed together)
-            - Verify insurance adjustments are applied correctly
-            - Identify any balance billing issues
-            - Flag charges that seem unusually high
-            - Note if an Explanation of Benefits (EOB) reference is present
-            - Check for timely filing issues or appeals deadlines
-            """
-
-        case .lease:
-            return """
-            Lease Agreement Analysis Instructions:
-            - Identify the lease term, rent amount, and security deposit
-            - Flag any unusual clauses (e.g., automatic renewal, excessive penalties)
-            - Check for tenant rights regarding maintenance, repairs, and habitability
-            - Look for hidden fees (application fees, amenity fees, trash fees)
-            - Identify notice requirements for move-out
-            - Flag any clauses that may be unenforceable or illegal in common jurisdictions
-            - Note pet policies, subletting rules, and guest restrictions
-            """
-
-        case .insurance:
-            return """
-            Insurance Document Analysis Instructions:
-            - Identify the type of insurance (health, auto, home, life, etc.)
-            - Extract coverage limits, deductibles, and premiums
-            - Flag any coverage exclusions or limitations
-            - Look for waiting periods or pre-existing condition clauses
-            - Identify the claims process and deadlines
-            - Note any automatic premium increase clauses
-            - Check for cancellation terms and penalties
-            """
-
-        case .unknown:
-            return """
-            General Document Analysis Instructions:
-            - Determine what type of document this is
-            - Extract the most important information
-            - Identify any commitments, obligations, or deadlines
-            - Flag anything that seems unusual or potentially unfavorable
-            """
-        }
-    }
 }
 
 #else
 
-// Stub for non-Apple platforms
-public final class AIAnalysisService: Sendable {
+// MARK: - Linux / non-Apple platform stub
+
+public final class AIAnalysisService: AIAnalysisServiceProtocol, Sendable {
     public init() {}
 
+    public func analyzeChunk(_ chunk: TextChunk, documentType: String?) async throws -> [Insight] {
+        return mockInsights(for: chunk)
+    }
+
+    public func generateSummary(from insights: [Insight], documentContext: String?) async throws -> String {
+        let count = insights.count
+        let categories = Set(insights.map { $0.category.rawValue })
+        let categoryList = categories.sorted().joined(separator: ", ")
+        return "Mock summary: Found \(count) insight(s) across categories: \(categoryList). "
+            + "This is a stub result — real analysis requires Apple Foundation Models on iOS 26+."
+    }
+
+    public func analyzeDocument(chunks: [TextChunk], documentType: String?) async throws -> AnalysisResult {
+        guard !chunks.isEmpty else {
+            throw AIAnalysisError.noChunksProvided
+        }
+
+        var allInsights: [Insight] = []
+        for chunk in chunks {
+            let chunkInsights = try await analyzeChunk(chunk, documentType: documentType)
+            allInsights.append(contentsOf: chunkInsights)
+        }
+
+        let summary = try await generateSummary(from: allInsights, documentContext: documentType)
+
+        let keyInsightStrings = allInsights
+            .filter { $0.category != .risk && $0.category != .recommendation }
+            .map { "\($0.title): \($0.description)" }
+
+        let redFlagStrings = allInsights
+            .filter { $0.category == .risk }
+            .map { "\($0.title): \($0.description)" }
+
+        let actionItemStrings = allInsights
+            .filter { $0.category == .recommendation || $0.category == .obligation }
+            .map { "\($0.title): \($0.description)" }
+
+        return AnalysisResult(
+            summary: summary,
+            keyInsights: keyInsightStrings,
+            redFlags: redFlagStrings,
+            actionItems: actionItemStrings,
+            documentType: .unknown
+        )
+    }
+
+    /// Legacy single-pass stub for backward compatibility.
     public func analyzeDocument(text: String, type: DocumentType) async throws -> AnalysisResult {
         throw AIAnalysisError.unavailable
     }
-}
 
-public enum AIAnalysisError: Error, LocalizedError, Sendable {
-    case unavailable
+    // MARK: - Mock Helpers
 
-    public var errorDescription: String? {
-        return "AI analysis is not available on this platform. Requires Apple Foundation Models on iOS 26+."
+    private func mockInsights(for chunk: TextChunk) -> [Insight] {
+        let quote = String(chunk.text.prefix(80))
+        let attribution = SourceAttribution(
+            chunkIndex: chunk.metadata.chunkIndex,
+            startOffset: 0,
+            endOffset: min(80, chunk.text.count),
+            matchedText: quote,
+            pageIndex: chunk.metadata.sourcePageIndex
+        )
+
+        return [
+            Insight(
+                title: "Mock Insight for Chunk \(chunk.metadata.chunkIndex)",
+                description: "This is a mock insight generated on a non-Apple platform. "
+                    + "Real analysis requires Apple Foundation Models on iOS 26+.",
+                category: .other,
+                confidence: 0.1,
+                sourceAttributions: [attribution]
+            )
+        ]
     }
 }
+
 #endif
