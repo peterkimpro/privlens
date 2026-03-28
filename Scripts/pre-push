@@ -1,0 +1,14 @@
+#!/bin/bash
+# pre-push hook — Runs Linux validation before pushing to catch CI failures early.
+# To skip (emergency): git push --no-verify
+#
+# Install: bash Scripts/setup-hooks.sh
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+
+echo "=== Pre-push: Running Linux validation ==="
+echo "(skip with: git push --no-verify)"
+echo ""
+
+# Run the full validation script
+exec bash "$REPO_ROOT/Scripts/validate-linux.sh"
