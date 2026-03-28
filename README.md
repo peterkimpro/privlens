@@ -51,7 +51,7 @@ Privlens is a private, on-device AI document analyzer for iOS. Scan any document
 | **One-line pitch** | Scan any document, get a plain-English summary with key terms, red flags, and action items -- all on-device |
 | **Differentiator** | Only app that combines scanning + AI analysis + on-device processing |
 | **Privacy promise** | Documents never leave the device. Zero network calls for analysis. Period. |
-| **Revenue model** | Hybrid: free tier (3 analyses/month) + one-time Pro unlock ($9.99-$14.99) + optional annual Pro+ ($19.99/yr) |
+| **Revenue model** | Soft paywall: 7-day reverse trial → free tier (3 analyses/month) → Pro annual ($29.99/yr) or Lifetime ($49.99) |
 
 ### User Stories
 
@@ -65,7 +65,8 @@ Privlens is a private, on-device AI document analyzer for iOS. Scan any document
 - As a user, I can view the source text alongside every AI interpretation
 - As a user, I know that nothing leaves my device (visible privacy indicators)
 - As a user, I can organize my analyzed documents in folders
-- As a user, I can unlock unlimited analyses with a one-time purchase
+- As a user, I get 7 days of full Pro access when I first install the app
+- As a user, I can unlock unlimited analyses with a subscription or lifetime purchase
 
 **P1 -- Should Have (v1.1)**
 - As a user, I can compare two documents side-by-side (e.g., old lease vs new lease)
@@ -186,9 +187,11 @@ Privlens is a private, on-device AI document analyzer for iOS. Scan any document
 - Swipe-to-delete
 
 #### Paywall
-- 3 free analyses per month
-- One-time Pro unlock: $9.99-$14.99
+- 7-day reverse trial (full Pro access, no payment info required)
+- After trial: 3 free AI analyses per month (unlimited scanning + OCR always free)
+- Pro unlock: $4.99/mo, $29.99/yr, or $49.99 lifetime
 - StoreKit 2 + RevenueCat integration
+- Review prompt triggered after 2nd successful analysis
 
 ### v1.1 Features (Phase 2)
 
@@ -197,7 +200,7 @@ Privlens is a private, on-device AI document analyzer for iOS. Scan any document
 - **Full-Text Search** -- Search across all analyzed documents
 - **Custom Notes** -- Add personal annotations to any analysis
 - **Additional Document Types** -- Tax forms (W-2, 1099), employment contracts, NDAs
-- **Pro+ Annual Tier** -- $19.99/yr for power users
+- **Paywall optimization** -- A/B test tighter limits based on review velocity
 
 ### v2.0 Features (Phase 3)
 
@@ -380,13 +383,30 @@ Document text:
 ### Paywall Flow
 
 ```
-[User reaches 3rd free analysis]
+[First Launch]
      │
      ▼
-[Soft paywall — "You've used your 3 free analyses"]
-  ├── "Unlock Privlens Pro" — $9.99-$14.99 one-time
-  ├── "Privlens Pro+" — $19.99/year (v1.1)
-  └── "Maybe later" — can still view past analyses
+[Welcome — "You have 7 days of full Pro access"]
+     │
+     ▼
+[Days 1-7: Full Pro — unlimited AI analyses]
+  ├── Day 2-3: Review prompt after 2nd analysis
+  └── Day 6: "Your Pro trial ends tomorrow" notification
+     │
+     ▼
+[Day 8: Features lock to Free tier]
+  ├── Unlimited scanning + OCR (always free)
+  └── 3 AI analyses/month
+     │
+     ▼
+[User hits monthly limit]
+     │
+     ▼
+[Soft paywall — "Upgrade to Privlens Pro"]
+  ├── Monthly: $4.99/mo
+  ├── Annual: $29.99/yr (⭐ "Save 58%")
+  ├── Lifetime: $49.99 (🏆 "Best Value — Pay Once")
+  └── "Maybe later" — can still scan, view past analyses
 ```
 
 ---
@@ -422,34 +442,96 @@ Document text:
 
 ## Monetization
 
-### Pricing Strategy
+### Pricing Strategy (Research-Backed)
 
 | Tier | Price | Access |
 |------|-------|--------|
-| **Free** | $0 | 3 document analyses/month, basic summaries |
-| **Pro** (one-time) | $9.99-$14.99 | Unlimited analyses, key terms, red flags, action items, comparison mode |
-| **Pro+** (annual, v1.1) | $19.99/year | Everything in Pro + new document types, export, priority support |
+| **Free** | $0 | Unlimited scanning + OCR forever, 3 AI analyses/month |
+| **Pro Monthly** | $4.99/mo | Unlimited AI analyses, all doc types, export, full insights |
+| **Pro Annual** | $29.99/yr | Same as monthly (~$2.50/mo, shown as "Save 58%") |
+| **Lifetime** | $49.99 | All Pro features forever (shown as "Best Value — Pay Once") |
 
-### Why This Model
+### Paywall Strategy: Soft Paywall with Reverse Trial
 
-- **Hard paywall converts 5x better than freemium** (RevenueCat data)
-- **One-time purchase differentiates** amid subscription fatigue (97% of popular apps use dark patterns)
+**Phase 1 — Reverse Trial (Days 1-7):**
+Every new user gets full Pro access for 7 days automatically. No payment info required. This lets users experience the AI analysis value before any paywall appears.
+
+**Phase 2 — Free Tier (Day 8+):**
+Features lock to free tier: unlimited scanning + OCR, 3 AI analyses/month. Users can still view all past analyses.
+
+**Phase 3 — Paywall Trigger:**
+When user hits the 3-analysis monthly limit, soft paywall appears with all 3 pricing options. "Lifetime" shown with "Best Value" badge. Annual shown with "Save 58%" badge.
+
+**Phase 4 — Tighten After Traction (50-100+ reviews):**
+A/B test reducing to 1 free analysis/month, or shortening reverse trial to 3 days.
+
+### Why This Model (Based on Research)
+
+**Why soft paywall (not hard):**
+- New apps with no brand recognition need free users for App Store reviews
+- Soft paywall generates **8-25 reviews per 1,000 installs** vs **1-3 with hard paywall**
+- Every top scanner app (Adobe Scan, Genius Scan, Scanner Pro, CamScanner, SwiftScan) uses soft freemium
+- Hard paywall only succeeds with pre-existing brand/press
+
+**Why reverse trial:**
+- Reverse trials convert **10-20% higher** than standard opt-in trials (RevenueCat/Superwall data)
+- Every user experiences full value → stronger loss aversion when features lock
+- No payment info friction at install = higher Day-1 retention
+
+**Why annual subscription + lifetime option:**
+- Scanner category standard is **$30-50/year** — we're right in range at $29.99/yr
+- "Lifetime Access" framing converts **10-20% better** than "One-Time Purchase" (A/B test data)
+- Lifetime option chosen ~12-18% of the time when shown alongside subs — zero churn, highest satisfaction
+- Subscription provides recurring revenue; lifetime captures subscription-fatigued users
+- Annual subscribers have **higher 12-month LTV** ($29.99 recurring) than one-time ($9.99-$14.99 once)
+
+**Why $29.99/yr and $49.99 lifetime:**
+- $29.99/yr matches Scanner Pro ($29.99/yr), undercuts Adobe Scan ($69.99/yr) and SwiftScan ($34.99-$59.99/yr)
+- $49.99 lifetime = ~1.7x annual price — optimal "lifetime = 1.5-2x annual" anchoring ratio
+- "Lifetime" framing converts 10-20% better than "one-time purchase"
+
+**Why NOT hard paywall / one-time only:**
+- Original plan ($9.99-$14.99 one-time) caps Year 1 LTV at $14.99 max per user
+- With annual sub: Year 1 LTV = $29.99 (2x), Year 2 = $59.98 (4x), recurring
+- Scanner Pro literally migrated FROM one-time ($6.99) TO subscription ($29.99/yr) — the industry has spoken
+
+**Other principles:**
 - **$0 marginal cost per user** -- on-device AI means no API bills, no cloud infra
 - **No ads** -- contradicts the privacy brand
+- **Usage-based gating (3 analyses/month) beats time-based** for scanner apps: 70-80% 12-month retention vs 45-55% for time-gated
 
-### Revenue Projections (Conservative)
+### Revenue Projections
 
-| Scenario | Downloads | Conversion | Avg Price | Revenue |
-|----------|-----------|------------|-----------|---------|
-| **Conservative** | 500K | 5% | $12.49 | **$312K Year 1** |
-| **With press coverage** | 1M | 5% | $12.49 | **$625K Year 1** |
-| **Indie comparable** | -- | -- | -- | **$5M+/yr at scale** |
+| Scenario | Downloads | Conversion | Model | Revenue |
+|----------|-----------|------------|-------|---------|
+| **Conservative** | 500K | 5% | 70% annual ($29.99) / 30% lifetime ($49.99) | **$475K Year 1** |
+| **With press** | 1M | 6% | 70% annual / 30% lifetime | **$1.16M Year 1** |
+| **Year 2 (recurring)** | +500K new | 5% + renewals | 55% renewal rate | **$700K-$1.5M** |
+
+### Review Velocity Strategy
+
+- Trigger `SKStoreReviewController` after 2nd successful AI analysis (the "aha moment")
+- Free tier retains users in-app → more review-eligible users
+- Target: **50+ reviews in first 30 days** (enables A/B testing paywall tightening)
+- Reverse trial means 100% of users reach the review trigger (not just paying users)
 
 ### Implementation
 
-- **StoreKit 2** for native iOS purchase handling
-- **RevenueCat SDK** for analytics, A/B price testing, and subscription management
+- **StoreKit 2** for native iOS purchase handling (subscriptions + non-consumable lifetime)
+- **RevenueCat SDK** for analytics, A/B price testing, remote paywall configuration, and subscription management
+- **Remote paywall config** — adjust pricing, trial length, and free limits without app updates
 - **Receipt validation** on-device (no server needed)
+
+### Competitive Pricing Landscape
+
+| Competitor | Model | Annual Price | Our Advantage |
+|-----------|-------|-------------|---------------|
+| **Adobe Scan** | Sub | $69.99/yr | We're 57% cheaper |
+| **Scanner Pro** | Sub | $29.99/yr | Same price, we add AI analysis |
+| **SwiftScan VIP** | Sub | $34.99/yr | Cheaper + on-device privacy |
+| **CamScanner** | Sub | $49.99/yr | No ads, no trust issues, cheaper |
+| **ChatGPT Plus** | Sub | $240/yr | 87% cheaper, on-device, specialized |
+| **Privlens** | Sub + Lifetime | $29.99/yr or $49.99 once | Only private, on-device option |
 
 ---
 
@@ -520,7 +602,7 @@ Document text:
 1. **Privacy Nutrition Label as a weapon** -- Show Privlens's minimal data collection vs. competitors' extensive collection side-by-side in screenshots
 2. **"Finally understand your medical bill"** -- Lead with the pain, not the tech
 3. **"Your documents never leave your iPhone"** -- The one-line differentiator
-4. **One-time price vs. subscription competitors** -- "$9.99 once. Not $9.99/month."
+4. **Pay-once option vs. subscription competitors** -- "$49.99 once. Not $9.99/month forever."
 5. **Apple feature potential** -- Aligns perfectly with Apple's privacy narrative. Strong App Store editorial candidate
 
 ### Target Communities
@@ -556,9 +638,9 @@ Document text:
 | **Genius Scan** | Good | None | OCR only | Decent | $2.99-$9.99/yr | We actually understand the document |
 | **CamScanner** | Good | Cloud-only | No | Terrible (malware) | Free + $4.99/mo | Trust. Period. |
 | **Microsoft Lens** | Good | Cloud-only | No | MS account required | Free | No account, no cloud |
-| **ChatGPT** | N/A | Excellent | No | Cloud-processed | $20/mo | On-device, $9.99 once |
-| **Claude** | N/A | Excellent | No | Cloud-processed | $20/mo | On-device, integrated scanning |
-| **Privlens** | **Vision OCR** | **Foundation Models** | **100%** | **Nothing leaves device** | **$9.99 once** | -- |
+| **ChatGPT** | N/A | Excellent | No | Cloud-processed | $20/mo | On-device, 87% cheaper annually |
+| **Claude** | N/A | Excellent | No | Cloud-processed | $20/mo | On-device, integrated scanning, private |
+| **Privlens** | **Vision OCR** | **Foundation Models** | **100%** | **Nothing leaves device** | **$29.99/yr or $49.99 once** | -- |
 
 ### Blue Ocean
 
