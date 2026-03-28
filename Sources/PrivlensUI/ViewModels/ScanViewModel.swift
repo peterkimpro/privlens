@@ -30,8 +30,8 @@ public final class ScanViewModel {
             var allText = ""
             for (index, image) in images.enumerated() {
                 processingStatus = "Reading page \(index + 1) of \(images.count)..."
-                let pageText = try await ocrService.extractText(from: image)
-                allText += pageText + "\n\n"
+                let ocrResult = try await ocrService.extractText(from: image)
+                allText += ocrResult.text + "\n\n"
             }
 
             let trimmedText = allText.trimmingCharacters(in: .whitespacesAndNewlines)
