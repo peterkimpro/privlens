@@ -14,6 +14,11 @@ public struct PaywallView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 24) {
+                    // Trial Banner
+                    if paywallManager.isInTrial {
+                        trialBanner
+                    }
+
                     // Hero
                     heroSection
 
@@ -42,6 +47,27 @@ public struct PaywallView: View {
                 await paywallManager.loadProducts()
             }
         }
+    }
+
+    // MARK: - Trial Banner
+
+    private var trialBanner: some View {
+        VStack(spacing: 8) {
+            HStack {
+                Image(systemName: "clock.fill")
+                    .foregroundStyle(.orange)
+                Text("\(paywallManager.trialDaysRemaining) days left of your free trial")
+                    .font(.subheadline.bold())
+            }
+
+            let totalTrialDays = 7
+            let progress = max(0, min(1, 1.0 - Double(paywallManager.trialDaysRemaining) / Double(totalTrialDays)))
+            ProgressView(value: progress)
+                .tint(.orange)
+        }
+        .padding()
+        .background(.orange.opacity(0.1))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     // MARK: - Sections
@@ -161,7 +187,9 @@ public struct PaywallView: View {
     }
 
     private func productButton(for product: Product) -> some View {
-        Button {
+        let recommended = isRecommended(product)
+
+        return Button {
             Task {
                 isPurchasing = true
                 defer { isPurchasing = false }
@@ -171,30 +199,66 @@ public struct PaywallView: View {
                 }
             }
         } label: {
-            HStack {
-                VStack(alignment: .leading) {
-                    Text(product.displayName)
-                        .font(.headline)
-                    Text(product.description)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+            VStack(spacing: 0) {
+                if recommended {
+                    Text("RECOMMENDED")
+                        .font(.caption2.bold())
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 4)
+                        .frame(maxWidth: .infinity)
+                        .background(.tint)
                 }
 
-                Spacer()
+                HStack {
+                    VStack(alignment: .leading) {
+                        Text(product.displayName)
+                            .font(.headline)
+                        Text(product.description)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
 
-                Text(product.displayPrice)
-                    .font(.headline)
+                    Spacer()
+
+                    Text(product.displayPrice)
+                        .font(.headline)
+                }
+                .padding()
             }
-            .padding()
             .background(.regularMaterial)
             .clipShape(RoundedRectangle(cornerRadius: 12))
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(.tint, lineWidth: isRecommended(product) ? 2 : 0)
+                    .stroke(.tint, lineWidth: recommended ? 3 : 0)
             )
+            .overlay(alignment: .topTrailing) {
+                productBadge(for: product)
+            }
         }
         .buttonStyle(.plain)
         .disabled(isPurchasing)
+    }
+
+    @ViewBuilder
+    private func productBadge(for product: Product) -> some View {
+        if product.id == PaywallManager.ProductID.annual.rawValue {
+            Text("Save 58%")
+                .font(.caption2.bold())
+                .foregroundStyle(.white)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(.green, in: RoundedRectangle(cornerRadius: 6))
+                .offset(x: -8, y: -8)
+        } else if product.id == PaywallManager.ProductID.lifetime.rawValue {
+            Text("Best Value")
+                .font(.caption2.bold())
+                .foregroundStyle(.white)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(.orange, in: RoundedRectangle(cornerRadius: 6))
+                .offset(x: -8, y: -8)
+        }
     }
 
     private func isRecommended(_ product: Product) -> Bool {

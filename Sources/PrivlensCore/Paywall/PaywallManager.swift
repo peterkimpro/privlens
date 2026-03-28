@@ -35,16 +35,54 @@ public final class PaywallManager {
     // MARK: - Constants
 
     public static let freeAnalysesPerMonth = 3
+    public static let trialDurationDays = 7
 
     // MARK: - State
 
     public private(set) var products: [Product] = []
-    public private(set) var isPro: Bool = false
+    public private(set) var hasPurchase: Bool = false
     public private(set) var freeAnalysesUsed: Int = 0
     public private(set) var purchaseError: String?
 
     private let freeAnalysesKey = "privlens_free_analyses_used"
     private let freeAnalysesMonthKey = "privlens_free_analyses_month"
+    private let installDateKey = "privlens_install_date"
+
+    // MARK: - Reverse Trial
+
+    /// The date the app was first launched. Persisted in UserDefaults.
+    public var installDate: Date {
+        if let stored = UserDefaults.standard.object(forKey: installDateKey) as? Date {
+            return stored
+        }
+        let now = Date()
+        UserDefaults.standard.set(now, forKey: installDateKey)
+        return now
+    }
+
+    /// The date the 7-day reverse trial ends, or nil if the user has a purchase.
+    public var trialEndDate: Date? {
+        guard !hasPurchase else { return nil }
+        return Calendar.current.date(byAdding: .day, value: Self.trialDurationDays, to: installDate)
+    }
+
+    /// Whether the user is currently within the 7-day reverse trial window.
+    public var isInTrial: Bool {
+        guard let end = trialEndDate else { return false }
+        return Date() < end
+    }
+
+    /// Number of full days remaining in the trial (0 when expired or purchased).
+    public var trialDaysRemaining: Int {
+        guard let end = trialEndDate else { return 0 }
+        let remaining = Calendar.current.dateComponents([.day], from: Date(), to: end).day ?? 0
+        return max(0, remaining)
+    }
+
+    /// User is Pro if they have a valid purchase OR are within the reverse trial.
+    public var isPro: Bool {
+        hasPurchase || isInTrial
+    }
 
     // MARK: - Computed Properties
 
@@ -52,6 +90,7 @@ public final class PaywallManager {
         max(0, Self.freeAnalysesPerMonth - freeAnalysesUsed)
     }
 
+    /// User can analyze if Pro (purchased or trial) OR has remaining free analyses.
     public var canAnalyze: Bool {
         isPro || remainingFreeAnalyses > 0
     }
@@ -59,6 +98,8 @@ public final class PaywallManager {
     // MARK: - Init
 
     public init() {
+        // Touch installDate to ensure it is persisted on first launch.
+        _ = installDate
         loadFreeAnalysesCount()
     }
 
@@ -83,7 +124,7 @@ public final class PaywallManager {
         case .success(let verification):
             let transaction = try checkVerified(verification)
             await transaction.finish()
-            isPro = true
+            hasPurchase = true
             purchaseError = nil
 
         case .userCancelled:
@@ -107,13 +148,13 @@ public final class PaywallManager {
     // MARK: - Status Check
 
     public func checkProStatus() async {
-        isPro = false
+        hasPurchase = false
 
         for await result in Transaction.currentEntitlements {
             if let transaction = try? checkVerified(result) {
                 let productIDs = ProductID.allCases.map(\.rawValue)
                 if productIDs.contains(transaction.productID) {
-                    isPro = true
+                    hasPurchase = true
                     return
                 }
             }
@@ -174,17 +215,50 @@ public final class PaywallManager {
 
 #else
 
-// Stub for non-Apple platforms
+// MARK: - Linux / Non-Apple Stub
+
+/// Stub for non-Apple platforms. Mirrors the full public API surface.
 public final class PaywallManager: Sendable {
     public static let freeAnalysesPerMonth = 3
+    public static let trialDurationDays = 7
 
-    public var isPro: Bool { false }
+    private let installDateKey = "privlens_install_date"
+
+    public var installDate: Date {
+        if let stored = UserDefaults.standard.object(forKey: installDateKey) as? Date {
+            return stored
+        }
+        let now = Date()
+        UserDefaults.standard.set(now, forKey: installDateKey)
+        return now
+    }
+
+    public var trialEndDate: Date? {
+        Calendar.current.date(byAdding: .day, value: Self.trialDurationDays, to: installDate)
+    }
+
+    public var isInTrial: Bool {
+        guard let end = trialEndDate else { return false }
+        return Date() < end
+    }
+
+    public var trialDaysRemaining: Int {
+        guard let end = trialEndDate else { return 0 }
+        let remaining = Calendar.current.dateComponents([.day], from: Date(), to: end).day ?? 0
+        return max(0, remaining)
+    }
+
+    public var hasPurchase: Bool { false }
+    public var isPro: Bool { hasPurchase || isInTrial }
     public var remainingFreeAnalyses: Int { Self.freeAnalysesPerMonth }
-    public var canAnalyze: Bool { true }
+    public var canAnalyze: Bool { isPro || remainingFreeAnalyses > 0 }
 
-    public init() {}
+    public init() {
+        _ = installDate
+    }
 
-    public func checkProStatusSync() -> Bool { false }
+    public func checkProStatusSync() -> Bool { isPro }
     public func recordAnalysis() {}
 }
+
 #endif

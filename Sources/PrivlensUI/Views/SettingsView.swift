@@ -1,9 +1,13 @@
 #if canImport(SwiftUI)
 import SwiftUI
 import PrivlensCore
+#if canImport(StoreKit)
+import StoreKit
+#endif
 
 public struct SettingsView: View {
     @State private var showPaywall = false
+    @State private var paywallManager = PaywallManager()
 
     public init() {}
 
@@ -53,32 +57,78 @@ public struct SettingsView: View {
                 }
             }
             .navigationTitle("Settings")
+            #if canImport(StoreKit)
             .sheet(isPresented: $showPaywall) {
                 PaywallView()
             }
+            #endif
         }
     }
 
     private var proStatusRow: some View {
         Button {
-            showPaywall = true
+            if !paywallManager.hasPurchase {
+                showPaywall = true
+            }
         } label: {
             HStack {
-                Image(systemName: "sparkles")
-                    .foregroundStyle(.tint)
+                Image(systemName: proStatusIcon)
+                    .foregroundStyle(proStatusIconColor)
                 VStack(alignment: .leading) {
-                    Text("Privlens Pro")
+                    Text(proStatusTitle)
                         .font(.headline)
-                    Text("Unlock unlimited analyses")
+                    Text(proStatusSubtitle)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
-                Image(systemName: "chevron.right")
-                    .foregroundStyle(.secondary)
+                if !paywallManager.hasPurchase {
+                    Image(systemName: "chevron.right")
+                        .foregroundStyle(.secondary)
+                }
             }
         }
         .tint(.primary)
+    }
+
+    private var proStatusIcon: String {
+        if paywallManager.hasPurchase {
+            return "checkmark.seal.fill"
+        } else if paywallManager.isInTrial {
+            return "clock.fill"
+        } else {
+            return "sparkles"
+        }
+    }
+
+    private var proStatusIconColor: Color {
+        if paywallManager.hasPurchase {
+            return .green
+        } else if paywallManager.isInTrial {
+            return .orange
+        } else {
+            return .tint
+        }
+    }
+
+    private var proStatusTitle: String {
+        if paywallManager.hasPurchase {
+            return "Pro"
+        } else if paywallManager.isInTrial {
+            return "Pro Trial — \(paywallManager.trialDaysRemaining) days remaining"
+        } else {
+            return "Free — \(paywallManager.freeAnalysesUsed)/\(PaywallManager.freeAnalysesPerMonth) analyses used"
+        }
+    }
+
+    private var proStatusSubtitle: String {
+        if paywallManager.hasPurchase {
+            return "Unlimited analyses enabled"
+        } else if paywallManager.isInTrial {
+            return "Enjoy full Pro features during your trial"
+        } else {
+            return "Upgrade for unlimited analyses"
+        }
     }
 }
 
