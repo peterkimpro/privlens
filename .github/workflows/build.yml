@@ -7,7 +7,21 @@ on:
     branches: [main]
 
 jobs:
-  spm-build:
+  # Job 1: Linux SPM build — validates PrivlensCore cross-platform stubs
+  linux-spm:
+    runs-on: ubuntu-latest
+    container: swift:6.0
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build PrivlensCore (Linux)
+        run: swift build --target PrivlensCore
+
+      - name: Run Unit Tests (Linux)
+        run: swift test
+
+  # Job 2: macOS full build + iOS Simulator tests
+  ios-build:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4

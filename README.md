@@ -537,24 +537,92 @@ A/B test reducing to 1 free analysis/month, or shortening reverse trial to 3 day
 
 ## Roadmap
 
-### Phase 1 -- MVP Launch (Target: Sept 2026, iOS 26 public release)
+### Phase 0 -- Project Scaffolding ✅ COMPLETE (March 2026)
+
+- [x] Swift Package structure (PrivlensCore + PrivlensUI)
+- [x] MVVM architecture with SwiftUI
+- [x] Data models (Document, DocumentType, AnalysisResult)
+- [x] 3-tab navigation (Scan, Documents, Settings)
+- [x] GitHub Actions CI (macOS + Linux)
+- [x] Platform-guarded stubs (`#if canImport`) for Linux cross-compilation
+
+### Phase 1 -- Scanning + OCR ✅ COMPLETE (March 2026)
+
+- [x] **ScannerService** — VisionKit `VNDocumentCameraViewController` wrapper with protocol-based design (`DocumentScannerProtocol`) for testability
+- [x] **OCRService** — Vision framework `VNRecognizeTextRequest` with accurate recognition level, language correction, and revision 3
+- [x] **DocumentClassifier** — Keyword-scoring classifier for medical bills, leases, and insurance documents
+- [x] **AIAnalysisService** — Apple Foundation Models integration with type-specific prompt templates and `@Generable` structured output
+- [x] **ScanViewModel** — Full scan → OCR → classify → analyze pipeline with progress tracking
+- [x] **MockScannerService** — Test/preview mock for scanner
+- [x] **ScannerView** — SwiftUI wrapper for VisionKit document camera with `UIViewControllerRepresentable`
+- [x] **Unit tests** — DocumentClassifier tests (5 cases) + Document model tests
+- [x] **CI** — Dual-platform GitHub Actions: Linux SPM build + macOS iOS Simulator build & test
+
+#### Scanning + OCR Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Phase 1 Pipeline                          │
+│                                                             │
+│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐   │
+│  │  ScannerView │    │  OCRService  │    │  Document     │   │
+│  │  (VisionKit) │───►│  (Vision)    │───►│  Classifier   │   │
+│  └──────────────┘    └──────────────┘    └──────┬───────┘   │
+│                                                  │           │
+│  User taps scan       VNRecognizeTextRequest     Keyword     │
+│  → camera opens       → accurate recognition     scoring     │
+│  → captures pages     → language correction      per type    │
+│  → returns [CGImage]  → returns String           → DocType   │
+│                                                  │           │
+│                                          ┌───────▼───────┐  │
+│                                          │ AIAnalysis     │  │
+│                                          │ Service        │  │
+│                                          │ (Foundation    │  │
+│                                          │  Models stub)  │  │
+│                                          └───────┬───────┘  │
+│                                                  │           │
+│                                          ┌───────▼───────┐  │
+│                                          │ AnalysisResult │  │
+│                                          │ (structured)   │  │
+│                                          └───────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Key design decisions:**
+- Protocol-based `DocumentScannerProtocol` enables mocking for tests and previews
+- `#if canImport(VisionKit)` / `#if canImport(Vision)` guards allow PrivlensCore to compile on Linux (CI + VDI development)
+- `#if ENABLE_FOUNDATION_MODELS` guard for AI service — stubs return error on non-Apple platforms
+- OCR supports both `CGImage` and raw `Data` (JPEG/PNG) input paths
+- Classifier uses keyword-frequency scoring (no ML model needed) — fast, deterministic, testable
+
+### Phase 2 -- AI Analysis with Apple Foundation Models 🔜 NEXT
 
 | Milestone | Target Date | Deliverable |
 |-----------|-------------|-------------|
-| **Project setup** | April 2026 | Xcode project, SwiftUI scaffold, CI/CD |
-| **Core scanning** | April 2026 | VisionKit camera capture + Vision OCR pipeline |
-| **AI proof-of-concept** | April 2026 | Scan a real medical bill → get plain-English summary |
-| **Chunking engine** | May 2026 | Handle 30-page documents within 4K token limit |
-| **Document type templates** | May 2026 | Prompt templates for medical bills, leases, insurance |
-| **Analysis UI** | May-June 2026 | Results screens (summary, key terms, red flags, actions) |
+| **Foundation Models proof-of-concept** | April 2026 | Scan a real medical bill → get plain-English summary on device |
+| **Chunking engine** | April-May 2026 | Handle 30-page documents within 4K token limit |
+| **Document type prompt templates** | May 2026 | Optimized prompts for medical bills, leases, insurance |
+| **Analysis results UI** | May 2026 | Results screens (summary, key terms, red flags, actions) |
+| **Source attribution** | May 2026 | Link AI insights back to source text locations |
+| **SwiftData persistence** | June 2026 | Save analyzed documents to local storage |
+
+### Phase 3 -- Document Library + Paywall (Target: June-July 2026)
+
+| Milestone | Target Date | Deliverable |
+|-----------|-------------|-------------|
 | **Document library** | June 2026 | SwiftData persistence, folders, search |
-| **Paywall** | June 2026 | StoreKit 2 + RevenueCat integration |
+| **Paywall** | June 2026 | StoreKit 2 + RevenueCat: reverse trial, soft paywall |
 | **Beta (TestFlight)** | June-July 2026 | During iOS 26 developer beta period |
+
+### Phase 4 -- Polish & Launch (Target: Aug-Sept 2026)
+
+| Milestone | Target Date | Deliverable |
+|-----------|-------------|-------------|
 | **Polish & QA** | July-Aug 2026 | Performance, edge cases, accessibility |
 | **App Store submission** | Aug 2026 | Review + approval before iOS 26 launch |
 | **Public launch** | Sept 2026 | Alongside iOS 26 public release |
 
-### Phase 2 -- v1.1 (Target: Nov 2026)
+### Phase 5 -- v1.1 (Target: Nov 2026)
 
 - Document comparison mode
 - Export & share (PDF reports)
@@ -562,7 +630,7 @@ A/B test reducing to 1 free analysis/month, or shortening reverse trial to 3 day
 - Tax forms, employment contracts, NDAs
 - Pro+ annual subscription tier
 
-### Phase 3 -- v2.0 (Target: Q1 2027)
+### Phase 6 -- v2.0 (Target: Q1 2027)
 
 - Follow-up questions (conversational document Q&A)
 - Smart auto-detection (no manual document type selection)
@@ -794,7 +862,7 @@ Privlens/
 Every push triggers a macOS build + test on GitHub's runners. This catches build errors **before you pull on the Mac**:
 
 ```yaml
-# .github/workflows/build.yml
+# .github/workflows/build.yml — dual-platform CI
 name: Build & Test
 on:
   push:
@@ -803,17 +871,24 @@ on:
     branches: [main]
 
 jobs:
-  build:
+  linux-spm:                           # Validates cross-platform stubs
+    runs-on: ubuntu-latest
+    container: swift:6.0
+    steps:
+      - uses: actions/checkout@v4
+      - run: swift build --target PrivlensCore
+      - run: swift test
+
+  ios-build:                           # Full iOS Simulator build + tests
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
       - uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: '17.0'
-      - name: Build
-        run: xcodebuild build -scheme Privlens -destination 'platform=iOS Simulator,name=iPhone 16 Pro'
-      - name: Test
-        run: xcodebuild test -scheme Privlens -destination 'platform=iOS Simulator,name=iPhone 16 Pro'
+          xcode-version: latest-stable
+      - run: swift build --target PrivlensCore
+      - run: xcodebuild build -scheme Privlens -destination 'platform=iOS Simulator,name=iPhone 16' CODE_SIGNING_ALLOWED=NO
+      - run: xcodebuild test -scheme Privlens -destination 'platform=iOS Simulator,name=iPhone 16' CODE_SIGNING_ALLOWED=NO
 ```
 
 **Why this matters:** Claude pushes code → GitHub Actions builds it on a real macOS runner → if it fails, Claude fixes it → by the time you pull on your Mac, it's guaranteed to compile.
