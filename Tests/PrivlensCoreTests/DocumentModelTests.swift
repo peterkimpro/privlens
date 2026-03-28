@@ -14,6 +14,8 @@ struct DocumentModelTests {
         #expect(doc.keyInsights.isEmpty)
         #expect(doc.analysisResult == nil)
         #expect(doc.thumbnailData == nil)
+        #expect(doc.pageImageData.isEmpty)
+        #expect(doc.pageCount == 0)
     }
 
     @Test("Document stores document type via raw value")
@@ -36,6 +38,19 @@ struct DocumentModelTests {
         for type in DocumentType.allCases {
             #expect(!type.systemIcon.isEmpty)
         }
+    }
+
+    @Test("Document stores page image data and count")
+    func pageImageData() {
+        let fakeJpeg = Data([0xFF, 0xD8, 0xFF, 0xE0])
+        let doc = Document(
+            title: "Multi-page",
+            rawText: "text",
+            pageImageData: [fakeJpeg, fakeJpeg],
+            pageCount: 2
+        )
+        #expect(doc.pageImageData.count == 2)
+        #expect(doc.pageCount == 2)
     }
 
     @Test("AnalysisResult initializes correctly")

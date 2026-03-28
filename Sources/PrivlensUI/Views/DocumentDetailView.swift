@@ -1,5 +1,8 @@
 #if canImport(SwiftUI)
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 import PrivlensCore
 
 public struct DocumentDetailView: View {
@@ -8,6 +11,7 @@ public struct DocumentDetailView: View {
 
     private enum DetailTab: String, CaseIterable {
         case analysis = "Analysis"
+        case pages = "Pages"
         case rawText = "Raw Text"
     }
 
@@ -30,6 +34,8 @@ public struct DocumentDetailView: View {
             switch selectedTab {
             case .analysis:
                 analysisTab
+            case .pages:
+                pagesTab
             case .rawText:
                 rawTextTab
             }
@@ -109,6 +115,43 @@ public struct DocumentDetailView: View {
                 }
             }
             .padding()
+        }
+    }
+
+    // MARK: - Pages Tab
+
+    private var pagesTab: some View {
+        Group {
+            if document.pageImageData.isEmpty {
+                ContentUnavailableView(
+                    "No Scanned Pages",
+                    systemImage: "doc.richtext",
+                    description: Text("Page images are not available for this document.")
+                )
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 16) {
+                        ForEach(Array(document.pageImageData.enumerated()), id: \.offset) { index, data in
+                            VStack(spacing: 8) {
+                                Text("Page \(index + 1) of \(document.pageCount)")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+
+                                #if canImport(UIKit)
+                                if let uiImage = UIImage(data: data) {
+                                    Image(uiImage: uiImage)
+                                        .resizable()
+                                        .scaledToFit()
+                                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                                        .shadow(color: .black.opacity(0.1), radius: 4, y: 2)
+                                }
+                                #endif
+                            }
+                        }
+                    }
+                    .padding()
+                }
+            }
         }
     }
 

@@ -3,13 +3,16 @@ import SwiftUI
 import PrivlensCore
 
 public struct ContentView: View {
+    private let store: DocumentStore?
 
-    public init() {}
+    public init() {
+        self.store = try? DocumentStore()
+    }
 
     public var body: some View {
         TabView {
             Tab("Scan", systemImage: "doc.viewfinder") {
-                ScannerView()
+                ScannerView(store: store)
             }
 
             Tab("Documents", systemImage: "folder.fill") {

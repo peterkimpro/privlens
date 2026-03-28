@@ -135,9 +135,16 @@ public final class ScanViewModel {
     public var latestResult: AnalysisResult?
     public var latestDocument: Document?
     public var errorMessage: String?
+    public var didSaveDocument = false
 
     public var isScanningSupported: Bool { false }
 
     public init() {}
+
+    public func reset() {
+        latestResult = nil
+        latestDocument = nil
+        didSaveDocument = false
+    }
 }
 #endif

@@ -6,27 +6,47 @@ import PrivlensCore
 import PhotosUI
 
 public struct ScannerView: View {
-    @State private var viewModel = ScanViewModel()
+    @State private var viewModel: ScanViewModel
     @State private var showScanner = false
     @State private var showPhotoPicker = false
 
     private let scannerService = ScannerService()
 
-    public init() {}
+    public init(store: DocumentStore? = nil) {
+        _viewModel = State(initialValue: ScanViewModel(store: store))
+    }
 
     public var body: some View {
         NavigationStack {
             VStack(spacing: 24) {
                 if viewModel.isProcessing {
                     processingView
-                } else if let result = viewModel.latestResult {
-                    NavigationLink(
-                        destination: AnalysisView(
-                            document: viewModel.latestDocument!,
-                            result: result
-                        )
-                    ) {
-                        resultPreviewCard(result)
+                } else if let result = viewModel.latestResult,
+                          let document = viewModel.latestDocument {
+                    VStack(spacing: 16) {
+                        if viewModel.didSaveDocument {
+                            Label("Saved to Library", systemImage: "checkmark.circle.fill")
+                                .font(.subheadline.bold())
+                                .foregroundStyle(.green)
+                        }
+
+                        NavigationLink(
+                            destination: AnalysisView(
+                                document: document,
+                                result: result
+                            )
+                        ) {
+                            resultPreviewCard(result)
+                        }
+
+                        Button {
+                            viewModel.reset()
+                        } label: {
+                            Label("Scan Another", systemImage: "doc.viewfinder")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.large)
                     }
                 } else {
                     scanPromptView
