@@ -70,28 +70,44 @@ private final class MockStorageService: StorageServiceProtocol, @unchecked Senda
     private let lock = NSLock()
     private var storage: [UUID: AnalysisResult] = [:]
 
-    func saveAnalysisResult(_ result: AnalysisResult, for documentId: UUID) async throws {
+    private func saveSync(_ result: AnalysisResult, for documentId: UUID) {
         lock.lock()
         defer { lock.unlock() }
         storage[documentId] = result
     }
 
-    func loadAnalysisResult(for documentId: UUID) async throws -> AnalysisResult? {
+    private func loadSync(for documentId: UUID) -> AnalysisResult? {
         lock.lock()
         defer { lock.unlock() }
         return storage[documentId]
     }
 
-    func deleteAnalysisResult(for documentId: UUID) async throws {
+    private func deleteSync(for documentId: UUID) {
         lock.lock()
         defer { lock.unlock() }
         storage[documentId] = nil
     }
 
-    func getAnalysisCount() async throws -> Int {
+    private func countSync() -> Int {
         lock.lock()
         defer { lock.unlock() }
         return storage.count
+    }
+
+    func saveAnalysisResult(_ result: AnalysisResult, for documentId: UUID) async throws {
+        saveSync(result, for: documentId)
+    }
+
+    func loadAnalysisResult(for documentId: UUID) async throws -> AnalysisResult? {
+        loadSync(for: documentId)
+    }
+
+    func deleteAnalysisResult(for documentId: UUID) async throws {
+        deleteSync(for: documentId)
+    }
+
+    func getAnalysisCount() async throws -> Int {
+        countSync()
     }
 }
 
@@ -108,24 +124,36 @@ private final class MockPaywallService: PaywallServiceProtocol, @unchecked Senda
         self.limit = limit
     }
 
-    func canPerformAnalysis() async -> Bool {
+    private func canPerformSync() -> Bool {
         if currentTier == .pro { return true }
         lock.lock()
         defer { lock.unlock() }
         return usageCount < limit
     }
 
-    func recordAnalysis() async {
+    private func recordSync() {
         lock.lock()
         defer { lock.unlock() }
         usageCount += 1
     }
 
-    func remainingFreeAnalyses() async -> Int {
+    private func remainingSync() -> Int {
         if currentTier == .pro { return Int.max }
         lock.lock()
         defer { lock.unlock() }
         return max(0, limit - usageCount)
+    }
+
+    func canPerformAnalysis() async -> Bool {
+        canPerformSync()
+    }
+
+    func recordAnalysis() async {
+        recordSync()
+    }
+
+    func remainingFreeAnalyses() async -> Int {
+        remainingSync()
     }
 }
 
