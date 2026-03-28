@@ -16,8 +16,23 @@ jobs:
         with:
           xcode-version: latest-stable
 
-      - name: Build SPM Package
-        run: swift build -Xswiftc -suppress-warnings
+      - name: Build PrivlensCore (SPM)
+        run: swift build --target PrivlensCore
+
+      - name: Build full app (iOS Simulator)
+        run: |
+          xcodebuild build \
+            -scheme Privlens \
+            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            -skipPackagePluginValidation \
+            CODE_SIGNING_ALLOWED=NO \
+            | tail -20
 
       - name: Run Tests
-        run: swift test
+        run: |
+          xcodebuild test \
+            -scheme Privlens \
+            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            -skipPackagePluginValidation \
+            CODE_SIGNING_ALLOWED=NO \
+            | tail -30
