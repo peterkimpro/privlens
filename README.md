@@ -618,13 +618,19 @@ A/B test reducing to 1 free analysis/month, or shortening reverse trial to 3 day
 - [x] **Metadata reference file** — `App/Privlens/Metadata/AppStoreMetadata.swift` with all App Store copy
 - [x] **Privacy/legal URL placeholders** — privlens.com/privacy, GitHub Issues support URL
 
-### Phase 4 -- Polish & Launch (Target: Aug-Sept 2026)
+### Phase 4 -- Polish & Launch ✅ COMPLETE (March 2026)
 
-| Milestone | Target Date | Deliverable |
-|-----------|-------------|-------------|
-| **Polish & QA** | July-Aug 2026 | Performance, edge cases, accessibility |
-| **App Store submission** | Aug 2026 | Review + approval before iOS 26 launch |
-| **Public launch** | Sept 2026 | Alongside iOS 26 public release |
+- [x] **PerformanceMonitor** — Operation timing and metrics tracking with eviction and averages
+- [x] **InputValidator** — Document text validation, OCR sanitization, title normalization, edge case handling
+- [x] **AnalysisCache** — In-memory result cache keyed by content hash with expiration and LRU eviction
+- [x] **AppReadinessChecker** — Device capability checks (platform, AI engine, storage, disk, camera)
+- [x] **ReviewPromptManager** — App Store review prompt timing (after 2nd analysis, 90-day cooldown)
+- [x] **ErrorRecoveryService** — User-friendly error messages with suggested recovery actions for all error types
+- [x] **AccessibilityHelpers** — Centralized VoiceOver labels and UI test identifiers for all screens
+- [x] **OnboardingView** — 3-page onboarding flow (scan, AI analysis, privacy) with accessibility support
+- [x] **UI Polish** — Privacy indicators, accessibility identifiers, error alerts with recovery actions across all views
+- [x] **Unit tests** — InputValidator (11 cases), AnalysisCache (10 cases), PerformanceMonitor (10 cases), AppReadinessChecker (6 cases), ErrorRecoveryService (12 cases), ReviewPromptManager (6 cases), AccessibilityHelpers (11 cases)
+- [x] **CI** — Dual-platform passing: Linux SPM + macOS iOS Simulator build & test
 
 ### Phase 5 -- v1.1 (Target: Nov 2026)
 
