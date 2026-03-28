@@ -663,21 +663,207 @@ No existing app combines all three: **document scanning + AI-powered analysis + 
 
 ## Development Setup
 
-### Prerequisites
+> **Note:** This project is developed from a Linux VDI (NVIDIA Cloud) using a cloud Mac for Xcode/Simulator. No local Mac required.
 
-- macOS 16+ (Sequoia)
-- Xcode 17+
-- iOS 26+ SDK
-- Physical iPhone 15 Pro or newer (Foundation Models don't work in Simulator)
-- Apple Developer Program membership ($99/yr)
+### Development Environment Overview
+
+| Component | What | Where | Cost |
+|-----------|------|-------|------|
+| **Code editing** | VS Code + Remote SSH | Linux VDI (local) | Free |
+| **Swift logic dev** | Swift toolchain on Linux | Linux VDI (local) | Free |
+| **Xcode / Simulator / SwiftUI Previews** | Cloud Mac via VNC | Scaleway Mac mini M4 | ~$160/mo |
+| **CI/CD builds** | GitHub Actions (macOS runner) | GitHub | Free (200 min/mo private) |
+| **App Store deployment** | Xcode Cloud | Apple | Free (25 hrs/mo with dev program) |
+| **Apple Developer Program** | Signing, TestFlight, App Store | Apple | $99/yr (~$8.25/mo) |
+| **Total monthly cost** | | | **~$168/mo** |
+
+### Architecture: Dual-Environment Workflow
+
+```
+┌─────────────────────────────────┐     SSH/VNC     ┌──────────────────────────────┐
+│     NVIDIA Cloud VDI (Linux)    │ ◄─────────────► │   Scaleway Mac mini M4       │
+│                                 │                  │                              │
+│  • VS Code (primary editor)     │   VS Code        │  • Xcode 17+                 │
+│  • Swift toolchain              │   Remote SSH     │  • iOS 26 Simulator          │
+│  • swift build / swift test     │                  │  • SwiftUI Previews          │
+│  • Git operations               │   VNC/Screen     │  • Code signing              │
+│  • Claude Code orchestrator     │   Sharing        │  • Archive & export          │
+│                                 │                  │  • Foundation Models testing  │
+└─────────────────────────────────┘                  └──────────────────────────────┘
+         │                                                      │
+         │  git push                                            │  Xcode Cloud
+         ▼                                                      ▼
+┌─────────────────────────────────┐              ┌──────────────────────────────┐
+│        GitHub Actions           │              │     App Store Connect        │
+│  • Build validation (PR checks) │              │  • TestFlight distribution   │
+│  • Unit tests on macOS runner   │              │  • App Store submission      │
+│  • Linting / formatting         │              │  • App Review                │
+└─────────────────────────────────┘              └──────────────────────────────┘
+```
+
+### Step 1: Cloud Mac Setup (Scaleway)
+
+1. **Create account** at [scaleway.com](https://www.scaleway.com/)
+2. **Rent a Mac mini M4** (EUR 149/mo, 16GB RAM) — [Apple Silicon page](https://www.scaleway.com/en/mac-mini-m4/)
+3. **Initial setup via VNC:**
+   ```bash
+   # Connect from your Linux VDI
+   # Install a VNC client first (TigerVNC or Remmina)
+   vncviewer <mac-ip>:5900
+   ```
+4. **On the Mac, install Xcode:**
+   - Open App Store → download Xcode 17+
+   - Accept license: `sudo xcodebuild -license accept`
+   - Install CLI tools: `xcode-select --install`
+5. **Enable SSH on the Mac:**
+   - System Settings → General → Sharing → Remote Login → ON
+6. **Set up SSH key authentication:**
+   ```bash
+   # From your Linux VDI
+   ssh-copy-id <your-user>@<mac-ip>
+   ```
+
+### Step 2: VS Code Remote SSH (Primary Editor)
+
+1. **On your Linux VDI**, install VS Code (if not already)
+2. **Install extensions:**
+   - Remote - SSH (`ms-vscode-remote.remote-ssh`)
+   - Swift (`sswg.swift-lang`) — for syntax highlighting, LSP, formatting
+3. **Configure SSH host** (`~/.ssh/config`):
+   ```
+   Host privlens-mac
+       HostName <scaleway-mac-ip>
+       User <your-user>
+       IdentityFile ~/.ssh/id_ed25519
+       ForwardAgent yes
+   ```
+4. **Connect:** VS Code → Remote Explorer → `privlens-mac` → Opens a full remote session
+5. **Clone and open the project on the Mac:**
+   ```bash
+   git clone https://github.com/peterkimpro/privlens.git ~/Developer/privlens
+   ```
+6. **Daily workflow:**
+   - Edit code in VS Code (runs locally, zero lag)
+   - Terminal in VS Code runs on the Mac (`swift build`, `swift test`, `xcodebuild`)
+   - Use VNC only for Simulator / SwiftUI Previews / Xcode GUI tasks
+
+### Step 3: Swift on Linux (Optional — Faster Logic Dev)
+
+Install the Swift toolchain on your Linux VDI to write and test non-UI code locally without touching the Mac:
+
+```bash
+# Install Swift on Ubuntu (your VDI)
+wget https://download.swift.org/swift-6.1-release/ubuntu2404/swift-6.1-RELEASE/swift-6.1-RELEASE-ubuntu24.04.tar.gz
+tar xzf swift-6.1-RELEASE-ubuntu24.04.tar.gz
+sudo mv swift-6.1-RELEASE-ubuntu24.04 /opt/swift
+echo 'export PATH=/opt/swift/usr/bin:$PATH' >> ~/.bashrc
+source ~/.bashrc
+swift --version
+```
+
+**What works on Linux:** Swift packages, business logic, models, networking, unit tests, prompt templates, chunking engine.
+**What doesn't:** SwiftUI, UIKit, Apple frameworks (Foundation Models, VisionKit, StoreKit).
+
+Structure the project with **Swift packages** to maximize what you can build/test on Linux:
+
+```
+Privlens/
+├── PrivlensCore/              # Swift Package — builds on Linux AND macOS
+│   ├── Sources/
+│   │   ├── Models/            # Document, DocumentAnalysis, DocumentType
+│   │   ├── AI/                # PromptTemplates, ChunkingEngine
+│   │   └── Utilities/         # Text processing, NER helpers
+│   └── Tests/
+│       ├── ChunkingEngineTests.swift
+│       └── PromptTemplateTests.swift
+├── Privlens/                  # Xcode app target — macOS only
+│   ├── App/
+│   ├── Features/
+│   └── Resources/
+└── Package.swift
+```
+
+### Step 4: GitHub Actions CI/CD
+
+The repo includes a GitHub Actions workflow for automated builds and tests on every push/PR:
+
+```yaml
+# .github/workflows/build.yml
+name: Build & Test
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '17.0'
+      - name: Build
+        run: xcodebuild build -scheme Privlens -destination 'platform=iOS Simulator,name=iPhone 16 Pro'
+      - name: Test
+        run: xcodebuild test -scheme Privlens -destination 'platform=iOS Simulator,name=iPhone 16 Pro'
+```
+
+**Free tier:** 200 effective macOS minutes/month for private repos (2,000 min × 0.1 multiplier). Public repos are free.
+
+### Step 5: Xcode Cloud (App Store Deployment)
+
+1. In Xcode on the Mac → Product → Xcode Cloud → Create Workflow
+2. Configure: Build on push to `main`, run tests, archive for TestFlight
+3. **25 free compute hours/month** included with Apple Developer Program
+4. Handles code signing, TestFlight uploads, and App Store submission automatically
+
+### Step 6: Testing on Physical Device
+
+**Option A — TestFlight (recommended):**
+Build via Xcode Cloud → automatically pushed to TestFlight → install on your iPhone. No Mac-to-iPhone cable needed.
+
+**Option B — Direct from cloud Mac:**
+Connect your iPhone to a Mac? Not possible remotely. Use TestFlight for all physical device testing.
+
+**Foundation Models testing:**
+- Foundation Models **do** work in iOS 26 Simulator on Apple Silicon Macs (M1+)
+- For production testing, use TestFlight on a physical iPhone 15 Pro+
+
+### Prerequisites (Summary)
+
+- **Linux VDI:** VS Code, Swift toolchain (optional), SSH client, VNC client
+- **Cloud Mac (Scaleway):** Xcode 17+, iOS 26 SDK, macOS 16+
+- **Apple Developer Program** membership ($99/yr)
+- **GitHub account** with Actions enabled
 
 ### Getting Started
 
 ```bash
-git clone https://github.com/peterkimpro/privlens.git
-cd privlens
+# On your Linux VDI — connect to Mac
+ssh privlens-mac
+
+# On the Mac — clone and open
+git clone https://github.com/peterkimpro/privlens.git ~/Developer/privlens
+cd ~/Developer/privlens
 open Privlens.xcodeproj
+
+# Or use VS Code Remote SSH for daily editing
+code --remote ssh-remote+privlens-mac ~/Developer/privlens
 ```
+
+### Cost Comparison: Cloud Mac vs. Buying a Mac
+
+| Option | Upfront | Monthly | Break-even |
+|--------|---------|---------|------------|
+| **Mac mini M4 (buy)** | $599+ | $0 | — |
+| **Scaleway cloud Mac** | $0 | ~$160 | ~4 months |
+| **MacStadium** | $0 | $119-$199 | ~3-5 months |
+| **Macly** | $0 | $100 | ~6 months |
+| **MacinCloud (pay-as-you-go)** | $0 | ~$20-40 (casual use) | Never (cheapest) |
+
+**Recommendation:** Start with Scaleway M4 ($160/mo). If Privlens validates and you're developing long-term, buy a Mac mini M4 ($599) — it pays for itself in 4 months. If you only need the Mac a few hours/week during early development, MacinCloud pay-as-you-go ($1/hr) is cheapest.
 
 ### Project Structure (Planned)
 
