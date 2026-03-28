@@ -8,14 +8,12 @@ public protocol ChunkingServiceProtocol: Sendable {
     ///
     /// - Parameters:
     ///   - text: The full text to chunk.
-    ///   - chunkSize: Target chunk size in characters (default 4000).
-    ///   - overlap: Desired overlap between consecutive chunks in characters (default 200).
+    ///   - configuration: Chunking parameters (chunk size, overlap, etc.).
     ///   - sourcePageIndex: Optional page index to record in chunk metadata.
     /// - Returns: An array of `TextChunk` values covering the entire input text.
     func chunkText(
         _ text: String,
-        chunkSize: Int,
-        overlap: Int,
+        configuration: ChunkingConfiguration,
         sourcePageIndex: Int?
     ) -> [TextChunk]
 }
@@ -28,10 +26,12 @@ public final class ChunkingService: ChunkingServiceProtocol, Sendable {
 
     public func chunkText(
         _ text: String,
-        chunkSize: Int = 4000,
-        overlap: Int = 200,
+        configuration: ChunkingConfiguration = .default,
         sourcePageIndex: Int? = nil
     ) -> [TextChunk] {
+        let chunkSize = configuration.maxChunkSize
+        let overlap = configuration.chunkOverlap
+
         guard !text.isEmpty else { return [] }
 
         // If the entire text fits in one chunk, return it directly.

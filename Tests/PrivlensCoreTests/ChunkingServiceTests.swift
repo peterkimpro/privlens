@@ -11,7 +11,7 @@ struct ChunkingServiceTests {
 
     @Test("Empty text returns no chunks")
     func emptyText() {
-        let chunks = service.chunkText("")
+        let chunks = service.chunkText("", configuration: .default)
         #expect(chunks.isEmpty)
     }
 
@@ -20,7 +20,7 @@ struct ChunkingServiceTests {
     @Test("Text shorter than chunk size returns single chunk")
     func shortText() {
         let text = "This is a short sentence."
-        let chunks = service.chunkText(text, chunkSize: 4000, overlap: 200)
+        let chunks = service.chunkText(text, configuration: .default)
         #expect(chunks.count == 1)
         #expect(chunks[0].text == text)
         #expect(chunks[0].metadata.chunkIndex == 0)
@@ -38,7 +38,7 @@ struct ChunkingServiceTests {
         let repeatCount = 100
         let text = String(repeating: sentence, count: repeatCount)
 
-        let chunks = service.chunkText(text, chunkSize: 500, overlap: 100)
+        let chunks = service.chunkText(text, configuration: ChunkingConfiguration(maxChunkSize: 500, chunkOverlap: 100, maxContextTokens: 4096))
 
         #expect(chunks.count > 1)
 
@@ -64,7 +64,7 @@ struct ChunkingServiceTests {
     func sentenceBoundaryRespect() {
         let text = "First sentence. Second sentence. Third sentence. Fourth sentence."
         // Chunk size large enough for ~2 sentences but not all 4.
-        let chunks = service.chunkText(text, chunkSize: 35, overlap: 10)
+        let chunks = service.chunkText(text, configuration: ChunkingConfiguration(maxChunkSize: 35, chunkOverlap: 10, maxContextTokens: 4096))
 
         for chunk in chunks {
             // Each chunk should end at a sentence boundary (period + space or end of text).
@@ -80,7 +80,7 @@ struct ChunkingServiceTests {
     @Test("A single sentence longer than chunk size is not split mid-sentence")
     func veryLongSentence() {
         let longSentence = String(repeating: "a", count: 5000) + "."
-        let chunks = service.chunkText(longSentence, chunkSize: 4000, overlap: 200)
+        let chunks = service.chunkText(longSentence, configuration: .default)
         // The sentence is too long to split at a sentence boundary, so it
         // should be returned as a single chunk.
         #expect(chunks.count == 1)
@@ -92,7 +92,7 @@ struct ChunkingServiceTests {
     @Test("Source page index is recorded in chunk metadata")
     func sourcePageIndex() {
         let text = "A sentence on page two."
-        let chunks = service.chunkText(text, chunkSize: 4000, overlap: 200, sourcePageIndex: 2)
+        let chunks = service.chunkText(text, configuration: .default, sourcePageIndex: 2)
         #expect(chunks.count == 1)
         #expect(chunks[0].metadata.sourcePageIndex == 2)
     }

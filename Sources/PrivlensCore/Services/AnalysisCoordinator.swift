@@ -46,19 +46,25 @@ public final class AnalysisCoordinator: AnalysisCoordinatorProtocol, Sendable {
     private let aiAnalysisService: AIAnalysisServiceProtocol
     private let storageService: StorageServiceProtocol
     private let paywallService: PaywallServiceProtocol
+    private let chunkingConfiguration: ChunkingConfiguration
     private let onProgress: (@Sendable (AnalysisProgress) -> Void)?
 
+    /// - Parameter chunkingConfiguration: Controls chunk size, overlap, and context
+    ///   window limits. Swap to `ChunkingConfiguration.turboQuant` (or a custom
+    ///   value) when TurboQuant integration lands.
     public init(
         chunkingService: ChunkingServiceProtocol,
         aiAnalysisService: AIAnalysisServiceProtocol,
         storageService: StorageServiceProtocol,
         paywallService: PaywallServiceProtocol,
+        chunkingConfiguration: ChunkingConfiguration = .default,
         onProgress: (@Sendable (AnalysisProgress) -> Void)? = nil
     ) {
         self.chunkingService = chunkingService
         self.aiAnalysisService = aiAnalysisService
         self.storageService = storageService
         self.paywallService = paywallService
+        self.chunkingConfiguration = chunkingConfiguration
         self.onProgress = onProgress
     }
 
@@ -82,8 +88,7 @@ public final class AnalysisCoordinator: AnalysisCoordinatorProtocol, Sendable {
 
         let chunks = chunkingService.chunkText(
             document.rawText,
-            chunkSize: 4000,
-            overlap: 200,
+            configuration: chunkingConfiguration,
             sourcePageIndex: nil
         )
 
