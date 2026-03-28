@@ -18,7 +18,7 @@ public final class AIAnalysisService: Sendable {
             generating: AnalysisResult.self
         )
 
-        return response
+        return response.content
     }
 
     // MARK: - Prompt Templates

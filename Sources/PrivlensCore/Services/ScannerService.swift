@@ -1,6 +1,6 @@
 import Foundation
 
-#if canImport(VisionKit)
+#if canImport(VisionKit) && os(iOS)
 import VisionKit
 
 /// Protocol for document scanning, enabling testability through mocking.
@@ -18,15 +18,10 @@ public final class ScannerService: DocumentScannerProtocol {
     public init() {}
 
     public var isSupported: Bool {
-        VNDocumentCameraViewController.self is AnyClass
+        VNDocumentCameraViewController.isSupported
     }
 
-    /// Triggers the document scanner. In practice this is driven by
-    /// the SwiftUI `VNDocumentCameraViewController` representable in the UI layer.
-    /// This service method exists to provide a clean async interface for the scan pipeline.
     public func scanDocument() async throws -> [Data] {
-        // The actual camera presentation is handled by the UI layer's ScannerView.
-        // This method is a convenience entry point for programmatic flows.
         throw ScannerError.requiresUIPresentation
     }
 }
