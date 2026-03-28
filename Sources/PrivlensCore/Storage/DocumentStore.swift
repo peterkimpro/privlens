@@ -9,7 +9,7 @@ public final class DocumentStore: Sendable {
     public let modelContainer: ModelContainer
 
     public init() throws {
-        let schema = Schema([Document.self])
+        let schema = Schema([Document.self, Folder.self])
         let configuration = ModelConfiguration(
             schema: schema,
             isStoredInMemoryOnly: false
@@ -93,6 +93,82 @@ public final class DocumentStore: Sendable {
         let descriptor = FetchDescriptor<Document>()
         return try context.fetchCount(descriptor)
     }
+
+    // MARK: - Folder Operations
+
+    @MainActor
+    public func createFolder(_ folder: Folder) throws {
+        let context = modelContainer.mainContext
+        context.insert(folder)
+        try context.save()
+    }
+
+    @MainActor
+    public func fetchAllFolders() throws -> [Folder] {
+        let context = modelContainer.mainContext
+        let descriptor = FetchDescriptor<Folder>(
+            sortBy: [SortDescriptor(\.sortOrder), SortDescriptor(\.name)]
+        )
+        return try context.fetch(descriptor)
+    }
+
+    @MainActor
+    public func deleteFolder(_ folder: Folder) throws {
+        let context = modelContainer.mainContext
+        context.delete(folder)
+        try context.save()
+    }
+
+    @MainActor
+    public func updateFolder(_ folder: Folder) throws {
+        let context = modelContainer.mainContext
+        try context.save()
+    }
+
+    @MainActor
+    public func moveDocument(_ document: Document, to folder: Folder?) throws {
+        document.folder = folder
+        let context = modelContainer.mainContext
+        try context.save()
+    }
+
+    @MainActor
+    public func fetchDocuments(in folder: Folder) throws -> [Document] {
+        let context = modelContainer.mainContext
+        let folderID = folder.id
+        let descriptor = FetchDescriptor<Document>(
+            predicate: #Predicate { $0.folder?.id == folderID },
+            sortBy: [SortDescriptor(\.dateScanned, order: .reverse)]
+        )
+        return try context.fetch(descriptor)
+    }
+
+    @MainActor
+    public func fetchUnfiledDocuments() throws -> [Document] {
+        let context = modelContainer.mainContext
+        let descriptor = FetchDescriptor<Document>(
+            predicate: #Predicate { $0.folder == nil },
+            sortBy: [SortDescriptor(\.dateScanned, order: .reverse)]
+        )
+        return try context.fetch(descriptor)
+    }
+
+    // MARK: - Full-Text Search
+
+    @MainActor
+    public func fullTextSearch(query: String) throws -> [Document] {
+        let context = modelContainer.mainContext
+        let lowered = query.lowercased()
+        let descriptor = FetchDescriptor<Document>(
+            predicate: #Predicate {
+                $0.title.localizedStandardContains(lowered) ||
+                $0.rawText.localizedStandardContains(lowered) ||
+                $0.analysisResult?.localizedStandardContains(lowered) == true
+            },
+            sortBy: [SortDescriptor(\.dateScanned, order: .reverse)]
+        )
+        return try context.fetch(descriptor)
+    }
 }
 
 #else
@@ -101,6 +177,7 @@ public final class DocumentStore: Sendable {
 public final class DocumentStore: @unchecked Sendable {
 
     private var documents: [Document] = []
+    private var folders: [Folder] = []
     private let lock = NSLock()
 
     public init() throws {}
@@ -147,6 +224,66 @@ public final class DocumentStore: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         return documents.count
+    }
+
+    // MARK: - Folder Operations
+
+    public func createFolder(_ folder: Folder) throws {
+        lock.lock()
+        defer { lock.unlock() }
+        folders.append(folder)
+    }
+
+    public func fetchAllFolders() throws -> [Folder] {
+        lock.lock()
+        defer { lock.unlock() }
+        return folders.sorted {
+            if $0.sortOrder != $1.sortOrder { return $0.sortOrder < $1.sortOrder }
+            return $0.name < $1.name
+        }
+    }
+
+    public func deleteFolder(_ folder: Folder) throws {
+        lock.lock()
+        defer { lock.unlock() }
+        folders.removeAll { $0.id == folder.id }
+    }
+
+    public func updateFolder(_ folder: Folder) throws {
+        // In-memory store: the object reference is already updated.
+    }
+
+    public func moveDocument(_ document: Document, to folder: Folder?) throws {
+        // In-memory stub: folder association is stored as a string on the Linux Document.
+    }
+
+    public func fetchDocuments(in folder: Folder) throws -> [Document] {
+        lock.lock()
+        defer { lock.unlock() }
+        return documents
+            .filter { $0.folder == folder.name }
+            .sorted { $0.dateScanned > $1.dateScanned }
+    }
+
+    public func fetchUnfiledDocuments() throws -> [Document] {
+        lock.lock()
+        defer { lock.unlock() }
+        return documents
+            .filter { $0.folder == nil }
+            .sorted { $0.dateScanned > $1.dateScanned }
+    }
+
+    // MARK: - Full-Text Search
+
+    public func fullTextSearch(query: String) throws -> [Document] {
+        lock.lock()
+        defer { lock.unlock() }
+        let lowered = query.lowercased()
+        return documents.filter {
+            $0.title.lowercased().contains(lowered) ||
+            $0.rawText.lowercased().contains(lowered) ||
+            ($0.analysisResult?.lowercased().contains(lowered) ?? false)
+        }.sorted { $0.dateScanned > $1.dateScanned }
     }
 }
 #endif

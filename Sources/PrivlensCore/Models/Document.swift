@@ -51,6 +51,9 @@ public final class Document {
     /// Number of pages in the original scan.
     public var pageCount: Int
 
+    /// The folder this document belongs to, if any.
+    public var folder: Folder?
+
     public var documentType: DocumentType {
         get { DocumentType(rawValue: documentTypeRaw) ?? .unknown }
         set { documentTypeRaw = newValue.rawValue }
@@ -67,7 +70,8 @@ public final class Document {
         keyInsights: [String] = [],
         thumbnailData: Data? = nil,
         pageImageData: [Data] = [],
-        pageCount: Int = 0
+        pageCount: Int = 0,
+        folder: Folder? = nil
     ) {
         self.id = id
         self.title = title
@@ -80,6 +84,7 @@ public final class Document {
         self.thumbnailData = thumbnailData
         self.pageImageData = pageImageData
         self.pageCount = pageCount
+        self.folder = folder
     }
 }
 #else
@@ -95,6 +100,7 @@ public final class Document: Codable, Sendable, Identifiable {
     public let thumbnailData: Data?
     public let pageImageData: [Data]
     public let pageCount: Int
+    public let folder: String?
 
     public var documentType: DocumentType {
         get { DocumentType(rawValue: documentTypeRaw) ?? .unknown }
@@ -111,7 +117,8 @@ public final class Document: Codable, Sendable, Identifiable {
         keyInsights: [String] = [],
         thumbnailData: Data? = nil,
         pageImageData: [Data] = [],
-        pageCount: Int = 0
+        pageCount: Int = 0,
+        folder: String? = nil
     ) {
         self.id = id
         self.title = title
@@ -124,6 +131,7 @@ public final class Document: Codable, Sendable, Identifiable {
         self.thumbnailData = thumbnailData
         self.pageImageData = pageImageData
         self.pageCount = pageCount
+        self.folder = folder
     }
 }
 #endif
