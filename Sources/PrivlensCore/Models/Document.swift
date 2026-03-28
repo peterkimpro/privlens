@@ -85,16 +85,16 @@ public final class Document {
 #else
 public final class Document: Codable, Sendable, Identifiable {
     public let id: UUID
-    public var title: String
-    public var rawText: String
-    public var documentTypeRaw: String
-    public var dateScanned: Date
-    public var analysisResult: String?
-    public var redFlags: [String]
-    public var keyInsights: [String]
-    public var thumbnailData: Data?
-    public var pageImageData: [Data]
-    public var pageCount: Int
+    public let title: String
+    public let rawText: String
+    public let documentTypeRaw: String
+    public let dateScanned: Date
+    public let analysisResult: String?
+    public let redFlags: [String]
+    public let keyInsights: [String]
+    public let thumbnailData: Data?
+    public let pageImageData: [Data]
+    public let pageCount: Int
 
     public var documentType: DocumentType {
         get { DocumentType(rawValue: documentTypeRaw) ?? .unknown }
