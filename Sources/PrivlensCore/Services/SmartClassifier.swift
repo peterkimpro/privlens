@@ -13,6 +13,7 @@ public protocol SmartClassifierProtocol: Sendable {
 #if ENABLE_FOUNDATION_MODELS
 import FoundationModels
 
+@available(iOS 26.0, macOS 26.0, *)
 public final class SmartClassifier: SmartClassifierProtocol, Sendable {
 
     private let fallbackClassifier: DocumentClassifier

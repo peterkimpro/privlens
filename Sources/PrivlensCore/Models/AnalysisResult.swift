@@ -1,78 +1,7 @@
 import Foundation
 
-#if ENABLE_FOUNDATION_MODELS
-import FoundationModels
+// MARK: - AnalysisResult (plain struct, used everywhere)
 
-@Generable
-public struct AnalysisResult: Codable, Sendable {
-    @Guide(description: "A concise 2-3 sentence summary of the document's key points")
-    public var summary: String
-
-    @Guide(description: "Important insights extracted from the document, each as a standalone statement")
-    public var keyInsights: [String]
-
-    @Guide(description: "Potential red flags or concerning items that warrant attention")
-    public var redFlags: [String]
-
-    @Guide(description: "Recommended next steps or actions the user should take")
-    public var actionItems: [String]
-
-    @Guide(description: "The classified document type as a raw string, e.g. medicalBill, lease, insurance, taxForm, employmentContract, nda, governmentForm, loanAgreement, homePurchase, unknown")
-    public var documentTypeRaw: String
-
-    public var documentType: DocumentType {
-        DocumentType(rawValue: documentTypeRaw) ?? .unknown
-    }
-
-    public init(
-        summary: String,
-        keyInsights: [String],
-        redFlags: [String],
-        actionItems: [String],
-        documentType: DocumentType
-    ) {
-        self.summary = summary
-        self.keyInsights = keyInsights
-        self.redFlags = redFlags
-        self.actionItems = actionItems
-        self.documentTypeRaw = documentType.rawValue
-    }
-}
-
-/// Structured output type for chunk-level AI analysis via @Generable.
-@Generable
-public struct ChunkAnalysisOutput: Codable, Sendable {
-    @Guide(description: "List of insight titles extracted from this chunk")
-    public var insightTitles: [String]
-
-    @Guide(description: "List of insight descriptions corresponding to each title")
-    public var insightDescriptions: [String]
-
-    @Guide(description: "List of insight categories as raw strings: personalInfo, financialInfo, legalClause, expirationDate, obligation, risk, recommendation, keyTerm, other")
-    public var insightCategories: [String]
-
-    @Guide(description: "List of confidence values from 0.0 to 1.0 for each insight")
-    public var insightConfidences: [Double]
-
-    @Guide(description: "List of short source quotes from the text that support each insight")
-    public var sourceQuotes: [String]
-
-    public init(
-        insightTitles: [String],
-        insightDescriptions: [String],
-        insightCategories: [String],
-        insightConfidences: [Double],
-        sourceQuotes: [String]
-    ) {
-        self.insightTitles = insightTitles
-        self.insightDescriptions = insightDescriptions
-        self.insightCategories = insightCategories
-        self.insightConfidences = insightConfidences
-        self.sourceQuotes = sourceQuotes
-    }
-}
-
-#else
 public struct AnalysisResult: Codable, Sendable {
     public var summary: String
     public var keyInsights: [String]
@@ -95,7 +24,8 @@ public struct AnalysisResult: Codable, Sendable {
     }
 }
 
-/// Stub for chunk analysis output on non-Apple platforms.
+// MARK: - ChunkAnalysisOutput (plain struct, used everywhere)
+
 public struct ChunkAnalysisOutput: Codable, Sendable {
     public var insightTitles: [String]
     public var insightDescriptions: [String]
@@ -115,6 +45,69 @@ public struct ChunkAnalysisOutput: Codable, Sendable {
         self.insightCategories = insightCategories
         self.insightConfidences = insightConfidences
         self.sourceQuotes = sourceQuotes
+    }
+}
+
+// MARK: - Generable AI output types (only used inside AIAnalysisService)
+
+#if ENABLE_FOUNDATION_MODELS
+import FoundationModels
+
+@available(iOS 26.0, macOS 26.0, *)
+@Generable
+public struct GenerableAnalysisResult: Codable, Sendable {
+    @Guide(description: "A concise 2-3 sentence summary of the document's key points")
+    public var summary: String
+
+    @Guide(description: "Important insights extracted from the document, each as a standalone statement")
+    public var keyInsights: [String]
+
+    @Guide(description: "Potential red flags or concerning items that warrant attention")
+    public var redFlags: [String]
+
+    @Guide(description: "Recommended next steps or actions the user should take")
+    public var actionItems: [String]
+
+    @Guide(description: "The classified document type as a raw string, e.g. medicalBill, lease, insurance, taxForm, employmentContract, nda, governmentForm, loanAgreement, homePurchase, unknown")
+    public var documentTypeRaw: String
+
+    public func toAnalysisResult() -> AnalysisResult {
+        AnalysisResult(
+            summary: summary,
+            keyInsights: keyInsights,
+            redFlags: redFlags,
+            actionItems: actionItems,
+            documentType: DocumentType(rawValue: documentTypeRaw) ?? .unknown
+        )
+    }
+}
+
+@available(iOS 26.0, macOS 26.0, *)
+@Generable
+public struct GenerableChunkAnalysisOutput: Codable, Sendable {
+    @Guide(description: "List of insight titles extracted from this chunk")
+    public var insightTitles: [String]
+
+    @Guide(description: "List of insight descriptions corresponding to each title")
+    public var insightDescriptions: [String]
+
+    @Guide(description: "List of insight categories as raw strings: personalInfo, financialInfo, legalClause, expirationDate, obligation, risk, recommendation, keyTerm, other")
+    public var insightCategories: [String]
+
+    @Guide(description: "List of confidence values from 0.0 to 1.0 for each insight")
+    public var insightConfidences: [Double]
+
+    @Guide(description: "List of short source quotes from the text that support each insight")
+    public var sourceQuotes: [String]
+
+    public func toChunkAnalysisOutput() -> ChunkAnalysisOutput {
+        ChunkAnalysisOutput(
+            insightTitles: insightTitles,
+            insightDescriptions: insightDescriptions,
+            insightCategories: insightCategories,
+            insightConfidences: insightConfidences,
+            sourceQuotes: sourceQuotes
+        )
     }
 }
 

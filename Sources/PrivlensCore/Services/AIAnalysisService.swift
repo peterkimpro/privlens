@@ -38,6 +38,7 @@ public enum AIAnalysisError: Error, LocalizedError, Sendable {
 #if ENABLE_FOUNDATION_MODELS
 import FoundationModels
 
+@available(iOS 26.0, macOS 26.0, *)
 public final class AIAnalysisService: AIAnalysisServiceProtocol, Sendable {
 
     public init() {}
@@ -48,8 +49,8 @@ public final class AIAnalysisService: AIAnalysisServiceProtocol, Sendable {
         let session = LanguageModelSession()
         let prompt = PromptTemplates.chunkAnalysisPrompt(text: chunk.text, documentType: documentType)
 
-        let response = try await session.respond(to: prompt, generating: ChunkAnalysisOutput.self)
-        let output = response.content
+        let response = try await session.respond(to: prompt, generating: GenerableChunkAnalysisOutput.self)
+        let output = response.content.toChunkAnalysisOutput()
 
         return convertToInsights(output, chunk: chunk)
     }
@@ -109,8 +110,8 @@ public final class AIAnalysisService: AIAnalysisServiceProtocol, Sendable {
     public func analyzeDocument(text: String, type: DocumentType) async throws -> AnalysisResult {
         let session = LanguageModelSession()
         let prompt = buildLegacyPrompt(for: type, text: text)
-        let response = try await session.respond(to: prompt, generating: AnalysisResult.self)
-        return response.content
+        let response = try await session.respond(to: prompt, generating: GenerableAnalysisResult.self)
+        return response.content.toAnalysisResult()
     }
 
     // MARK: - Private Helpers

@@ -40,6 +40,7 @@ public enum ConversationError: Error, LocalizedError, Sendable {
 #if ENABLE_FOUNDATION_MODELS
 import FoundationModels
 
+@available(iOS 26.0, macOS 26.0, *)
 public final class ConversationService: ConversationServiceProtocol, Sendable {
 
     public init() {}

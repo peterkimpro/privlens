@@ -43,6 +43,7 @@ public protocol TranslationServiceProtocol: Sendable {
 #if ENABLE_FOUNDATION_MODELS
 import FoundationModels
 
+@available(iOS 26.0, macOS 26.0, *)
 public final class TranslationService: TranslationServiceProtocol, Sendable {
 
     public init() {}
