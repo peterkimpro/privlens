@@ -68,7 +68,7 @@ public struct SettingsView: View {
                     HStack {
                         Text("Version")
                         Spacer()
-                        Text("1.0.0")
+                        Text("1.1.0")
                             .foregroundStyle(.secondary)
                     }
                     .accessibilityElement(children: .combine)
@@ -157,7 +157,9 @@ public struct SettingsView: View {
     }
 
     private var proStatusTitle: String {
-        if paywallManager.hasPurchase {
+        if paywallManager.isProPlus {
+            return "Pro+"
+        } else if paywallManager.hasPurchase {
             return "Pro"
         } else if paywallManager.isInTrial {
             return "Pro Trial — \(paywallManager.trialDaysRemaining) days remaining"
@@ -167,7 +169,9 @@ public struct SettingsView: View {
     }
 
     private var proStatusSubtitle: String {
-        if paywallManager.hasPurchase {
+        if paywallManager.isProPlus {
+            return "Unlimited analyses + document comparison"
+        } else if paywallManager.hasPurchase {
             return "Unlimited analyses enabled"
         } else if paywallManager.isInTrial {
             return "Enjoy full Pro features during your trial"

@@ -111,6 +111,16 @@ public final class ErrorRecoveryService: ErrorRecoveryServiceProtocol, Sendable 
             return handleStorageError(storageError)
         }
 
+        // Comparison errors
+        if let comparisonError = error as? DocumentComparisonError {
+            return handleComparisonError(comparisonError)
+        }
+
+        // PDF export errors
+        if let exportError = error as? PDFExportError {
+            return handleExportError(exportError)
+        }
+
         // Generic fallback
         return ErrorRecoveryInfo(
             title: "Something Went Wrong",
@@ -267,6 +277,51 @@ public final class ErrorRecoveryService: ErrorRecoveryServiceProtocol, Sendable 
                 isRetryable: false
             )
         #endif
+        }
+    }
+
+    private func handleComparisonError(_ error: DocumentComparisonError) -> ErrorRecoveryInfo {
+        switch error {
+        case .emptyDocument(let name):
+            return ErrorRecoveryInfo(
+                title: "Empty Document",
+                message: "'\(name)' has no text content to compare. Please ensure both documents have been scanned with OCR.",
+                actions: [.rescan],
+                isRetryable: false
+            )
+        case .sameDocument:
+            return ErrorRecoveryInfo(
+                title: "Same Document",
+                message: "Please select two different documents to compare.",
+                actions: [.none],
+                isRetryable: false
+            )
+        case .comparisonFailed:
+            return ErrorRecoveryInfo(
+                title: "Comparison Failed",
+                message: "The document comparison could not be completed. Please try again.",
+                actions: [.retry],
+                isRetryable: true
+            )
+        }
+    }
+
+    private func handleExportError(_ error: PDFExportError) -> ErrorRecoveryInfo {
+        switch error {
+        case .noContent:
+            return ErrorRecoveryInfo(
+                title: "Nothing to Export",
+                message: "There is no analysis content to export. Please run an analysis first.",
+                actions: [.none],
+                isRetryable: false
+            )
+        case .renderingFailed:
+            return ErrorRecoveryInfo(
+                title: "Export Failed",
+                message: "The PDF could not be generated. Please try again.",
+                actions: [.retry],
+                isRetryable: true
+            )
         }
     }
 

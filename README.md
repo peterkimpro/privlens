@@ -632,13 +632,19 @@ A/B test reducing to 1 free analysis/month, or shortening reverse trial to 3 day
 - [x] **Unit tests** — InputValidator (11 cases), AnalysisCache (10 cases), PerformanceMonitor (10 cases), AppReadinessChecker (6 cases), ErrorRecoveryService (12 cases), ReviewPromptManager (6 cases), AccessibilityHelpers (11 cases)
 - [x] **CI** — Dual-platform passing: Linux SPM + macOS iOS Simulator build & test
 
-### Phase 5 -- v1.1 (Target: Nov 2026)
+### Phase 5 -- v1.1 (Target: Nov 2026) ✅ COMPLETE (March 2026)
 
-- Document comparison mode
-- Export & share (PDF reports)
-- Full-text search across documents
-- Tax forms, employment contracts, NDAs
-- Pro+ annual subscription tier
+- [x] **Document comparison mode** — Side-by-side analysis of two documents with financial, legal, date, and term difference detection, Jaccard similarity scoring, and critical difference highlighting
+- [x] **Export & share (PDF reports)** — PDFExportService with UIKit CoreText rendering (iOS) and plain-text fallback (Linux), ExportView with PDF and text share options, integrated into AnalysisView toolbar
+- [x] **Full-text search across documents** — Dedicated SearchView tab with full-text search across titles, content, and analysis results, matching snippet previews
+- [x] **Tax forms, employment contracts, NDAs** — Three new DocumentType cases with keyword-based classification (scoreTaxForm, scoreEmploymentContract, scoreNDA), type-specific prompt templates for targeted analysis
+- [x] **Pro+ annual subscription tier** — New SubscriptionTier.proPlus, PaywallManager.ProductID.proPlusAnnual ($49.99/yr), supportsComparison gating
+- [x] **ComparisonView** — Document picker sheets, similarity indicator, categorized differences (critical/other), share comparison report
+- [x] **Updated navigation** — 5-tab layout: Scan, Documents, Compare, Search, Settings
+- [x] **Accessibility** — Full VoiceOver support for comparison, export, and search views with new identifiers and labels
+- [x] **Error recovery** — DocumentComparisonError and PDFExportError handled in ErrorRecoveryService with user-friendly messages
+- [x] **Unit tests** — DocumentComparisonService (10 cases), PDFExportService (10 cases), DocumentClassifier v1.1 (10 cases) — all passing on Linux
+- [x] **CI** — Dual-platform passing: Linux SPM build & test (183 tests)
 
 ### Phase 6 -- v2.0 (Target: Q1 2027)
 

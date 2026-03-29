@@ -80,6 +80,33 @@ public enum AccessibilityLabels: Sendable {
     public static let upgradeToPro = "Upgrade to Pro for unlimited analyses"
     public static let restorePurchases = "Restore previous purchases"
 
+    // MARK: - Comparison
+
+    public static func comparisonSummary(similarityPercent: Int) -> String {
+        "Documents are \(similarityPercent) percent similar."
+    }
+
+    public static func differenceCount(_ count: Int) -> String {
+        "\(count) difference\(count == 1 ? "" : "s") found between documents."
+    }
+
+    public static func differenceItem(label: String) -> String {
+        "Difference: \(label)"
+    }
+
+    // MARK: - Export
+
+    public static let exportPDF = "Export analysis as PDF"
+    public static let exportText = "Share analysis as text"
+    public static let exportComparison = "Export comparison report"
+
+    // MARK: - Search
+
+    public static let searchDocuments = "Search across all documents"
+    public static func searchResultCount(_ count: Int) -> String {
+        "\(count) document\(count == 1 ? "" : "s") found."
+    }
+
     // MARK: - Settings
 
     public static let settingsButton = "Settings"
@@ -132,6 +159,23 @@ public enum AccessibilityIdentifiers: Sendable {
     public static let paywallSheet = "paywall.sheet"
     public static let paywallUpgradeButton = "paywall.upgrade"
     public static let paywallRestoreButton = "paywall.restore"
+
+    // Comparison
+    public static let comparisonView = "comparison.view"
+    public static let comparisonSummary = "comparison.summary"
+    public static let comparisonDifferences = "comparison.differences"
+    public static let comparisonSelectDocA = "comparison.selectDocA"
+    public static let comparisonSelectDocB = "comparison.selectDocB"
+    public static let comparisonRunButton = "comparison.run"
+
+    // Export
+    public static let exportPDFButton = "export.pdf"
+    public static let exportShareButton = "export.share"
+
+    // Search
+    public static let searchView = "search.view"
+    public static let searchField = "search.field"
+    public static let searchResults = "search.results"
 
     // Settings
     public static let settingsProStatus = "settings.prostatus"

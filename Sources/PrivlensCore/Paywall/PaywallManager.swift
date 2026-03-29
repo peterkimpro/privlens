@@ -14,12 +14,14 @@ public final class PaywallManager {
         case monthly = "com.privlens.pro.monthly"
         case annual = "com.privlens.pro.annual"
         case lifetime = "com.privlens.pro.lifetime"
+        case proPlusAnnual = "com.privlens.proplus.annual"
 
         public var displayName: String {
             switch self {
             case .monthly: return "Monthly"
             case .annual: return "Annual"
             case .lifetime: return "Lifetime"
+            case .proPlusAnnual: return "Pro+ Annual"
             }
         }
 
@@ -28,7 +30,13 @@ public final class PaywallManager {
             case .monthly: return "$4.99/mo"
             case .annual: return "$29.99/yr"
             case .lifetime: return "$49.99"
+            case .proPlusAnnual: return "$49.99/yr"
             }
+        }
+
+        /// Whether this product is a Pro+ tier product.
+        public var isProPlus: Bool {
+            self == .proPlusAnnual
         }
     }
 
@@ -41,6 +49,7 @@ public final class PaywallManager {
 
     public private(set) var products: [Product] = []
     public private(set) var hasPurchase: Bool = false
+    public private(set) var hasProPlusPurchase: Bool = false
     public private(set) var freeAnalysesUsed: Int = 0
     public private(set) var purchaseError: String?
 
@@ -82,6 +91,16 @@ public final class PaywallManager {
     /// User is Pro if they have a valid purchase OR are within the reverse trial.
     public var isPro: Bool {
         hasPurchase || isInTrial
+    }
+
+    /// Whether the user has Pro+ features (document comparison, priority export).
+    public var isProPlus: Bool {
+        hasProPlusPurchase
+    }
+
+    /// Whether the user can access document comparison (Pro+ only).
+    public var supportsComparison: Bool {
+        isProPlus
     }
 
     // MARK: - Computed Properties
@@ -149,13 +168,18 @@ public final class PaywallManager {
 
     public func checkProStatus() async {
         hasPurchase = false
+        hasProPlusPurchase = false
+
+        let proPlusIDs = ProductID.allCases.filter(\.isProPlus).map(\.rawValue)
+        let allIDs = ProductID.allCases.map(\.rawValue)
 
         for await result in Transaction.currentEntitlements {
             if let transaction = try? checkVerified(result) {
-                let productIDs = ProductID.allCases.map(\.rawValue)
-                if productIDs.contains(transaction.productID) {
+                if allIDs.contains(transaction.productID) {
                     hasPurchase = true
-                    return
+                    if proPlusIDs.contains(transaction.productID) {
+                        hasProPlusPurchase = true
+                    }
                 }
             }
         }
@@ -249,7 +273,10 @@ public final class PaywallManager: Sendable {
     }
 
     public var hasPurchase: Bool { false }
+    public var hasProPlusPurchase: Bool { false }
     public var isPro: Bool { hasPurchase || isInTrial }
+    public var isProPlus: Bool { hasProPlusPurchase }
+    public var supportsComparison: Bool { isProPlus }
     public var remainingFreeAnalyses: Int { Self.freeAnalysesPerMonth }
     public var canAnalyze: Bool { isPro || remainingFreeAnalyses > 0 }
 

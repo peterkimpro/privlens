@@ -12,6 +12,9 @@ public final class DocumentClassifier: Sendable {
             (.medicalBill, scoreMedicalBill(lowercased)),
             (.lease, scoreLease(lowercased)),
             (.insurance, scoreInsurance(lowercased)),
+            (.taxForm, scoreTaxForm(lowercased)),
+            (.employmentContract, scoreEmploymentContract(lowercased)),
+            (.nda, scoreNDA(lowercased)),
         ]
 
         guard let best = scores.max(by: { $0.1 < $1.1 }), best.1 > 0 else {
@@ -83,6 +86,81 @@ public final class DocumentClassifier: Sendable {
             "network", "in-network", "out-of-network",
             "copayment", "coinsurance",
             "maximum benefit", "lifetime maximum",
+        ]
+        return countMatches(in: text, keywords: keywords)
+    }
+
+    private func scoreTaxForm(_ text: String) -> Int {
+        let keywords = [
+            "w-2", "w2", "wage and tax statement",
+            "1099", "1099-misc", "1099-nec", "1099-int", "1099-div",
+            "1040", "form 1040",
+            "tax return", "tax form",
+            "adjusted gross income", "agi",
+            "taxable income", "tax liability",
+            "federal income tax withheld", "state income tax",
+            "social security wages", "medicare wages",
+            "employer identification number", "ein",
+            "filing status", "standard deduction",
+            "tax credit", "earned income",
+            "withholding", "estimated tax",
+            "irs", "internal revenue service",
+            "tax year", "fiscal year",
+            "schedule a", "schedule b", "schedule c", "schedule d",
+            "dependent", "exemption",
+            "refund", "amount owed",
+            "quarterly payment", "self-employment tax",
+        ]
+        return countMatches(in: text, keywords: keywords)
+    }
+
+    private func scoreEmploymentContract(_ text: String) -> Int {
+        let keywords = [
+            "employment agreement", "employment contract",
+            "employee", "employer",
+            "job title", "position", "role",
+            "compensation", "base salary", "annual salary",
+            "start date", "commencement",
+            "probationary period", "probation",
+            "benefits", "health insurance", "retirement",
+            "paid time off", "pto", "vacation days",
+            "termination", "at-will", "at will",
+            "severance", "severance pay",
+            "non-compete", "non-solicitation",
+            "intellectual property", "work product",
+            "confidentiality", "proprietary information",
+            "duties and responsibilities",
+            "performance review", "performance evaluation",
+            "bonus", "stock options", "equity",
+            "overtime", "work hours", "working hours",
+            "relocation", "remote work",
+            "notice period", "resignation",
+            "background check", "drug test",
+        ]
+        return countMatches(in: text, keywords: keywords)
+    }
+
+    private func scoreNDA(_ text: String) -> Int {
+        let keywords = [
+            "non-disclosure agreement", "nda",
+            "confidentiality agreement",
+            "confidential information", "proprietary information",
+            "disclosing party", "receiving party",
+            "trade secret", "trade secrets",
+            "intellectual property",
+            "obligation of confidentiality",
+            "permitted disclosure", "authorized disclosure",
+            "return of materials", "destruction of materials",
+            "term and termination",
+            "injunctive relief", "equitable relief",
+            "breach", "remedy", "remedies",
+            "governing law", "jurisdiction",
+            "mutual nda", "unilateral",
+            "exclusions from confidential",
+            "residual knowledge",
+            "non-circumvention",
+            "survival", "surviving obligations",
+            "indemnification",
         ]
         return countMatches(in: text, keywords: keywords)
     }

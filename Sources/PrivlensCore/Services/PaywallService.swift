@@ -5,6 +5,7 @@ import Foundation
 public enum SubscriptionTier: String, Codable, Sendable {
     case free
     case pro
+    case proPlus
 }
 
 // MARK: - PaywallError
@@ -85,8 +86,18 @@ public final class PaywallService: PaywallServiceProtocol, @unchecked Sendable {
         self.usageFilePath = usageFilePath
     }
 
+    /// Whether the current tier is any paid tier (Pro or Pro+).
+    public var isPaid: Bool {
+        currentTier == .pro || currentTier == .proPlus
+    }
+
+    /// Whether the current tier supports comparison features (Pro+ only).
+    public var supportsComparison: Bool {
+        currentTier == .proPlus
+    }
+
     public func canPerformAnalysis() async -> Bool {
-        if currentTier == .pro {
+        if isPaid {
             return true
         }
         let remaining = await remainingFreeAnalyses()
@@ -94,14 +105,14 @@ public final class PaywallService: PaywallServiceProtocol, @unchecked Sendable {
     }
 
     public func recordAnalysis() async {
-        if currentTier == .pro {
+        if isPaid {
             return
         }
         recordAnalysisSync()
     }
 
     public func remainingFreeAnalyses() async -> Int {
-        if currentTier == .pro {
+        if isPaid {
             return Int.max
         }
         return remainingFreeAnalysesSync()

@@ -32,6 +32,16 @@ public struct ContentView: View {
             }
             .accessibilityIdentifier(AccessibilityIdentifiers.documentsTab)
 
+            Tab("Compare", systemImage: "arrow.left.arrow.right") {
+                ComparisonView()
+            }
+            .accessibilityIdentifier(AccessibilityIdentifiers.comparisonView)
+
+            Tab("Search", systemImage: "magnifyingglass") {
+                SearchView()
+            }
+            .accessibilityIdentifier(AccessibilityIdentifiers.searchView)
+
             Tab("Settings", systemImage: "gearshape.fill") {
                 SettingsView()
             }

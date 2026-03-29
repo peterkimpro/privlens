@@ -94,4 +94,97 @@ public enum PromptTemplates: Sendable {
         Write the summary now:
         """
     }
+
+    /// Builds a document-type-specific analysis prompt with tailored extraction guidance.
+    public static func typeSpecificPrompt(text: String, documentType: DocumentType) -> String {
+        switch documentType {
+        case .taxForm:
+            return taxFormPrompt(text: text)
+        case .employmentContract:
+            return employmentContractPrompt(text: text)
+        case .nda:
+            return ndaPrompt(text: text)
+        default:
+            return chunkAnalysisPrompt(text: text, documentType: documentType.displayName)
+        }
+    }
+
+    private static func taxFormPrompt(text: String) -> String {
+        """
+        You are a tax document analysis assistant. Analyze the following tax form and extract \
+        structured insights.
+
+        Focus specifically on:
+        - **Income figures:** Gross income, wages, tips, other compensation, interest, dividends
+        - **Tax withholding:** Federal, state, local taxes withheld, Social Security, Medicare
+        - **Employer/payer information:** Employer name, EIN, address
+        - **Filing status indicators:** W-2 vs 1099, employee vs contractor classification
+        - **Deductions and credits:** Any referenced deductions, credits, or adjustments
+        - **Key dates:** Tax year, filing deadlines, extension dates
+        - **Red flags:** Discrepancies between reported amounts, missing information, \
+        unusual entries, misclassification risks
+
+        For each insight, provide a short title, detailed description, category, \
+        severity (0.0-1.0), and a supporting quote from the text.
+
+        TAX FORM TEXT:
+        ---
+        \(text)
+        ---
+        """
+    }
+
+    private static func employmentContractPrompt(text: String) -> String {
+        """
+        You are an employment contract analysis assistant. Analyze the following employment \
+        agreement and extract structured insights.
+
+        Focus specifically on:
+        - **Compensation:** Base salary, bonus structure, equity/stock options, commission
+        - **Benefits:** Health insurance, retirement (401k match), PTO/vacation, sick leave
+        - **Employment terms:** At-will vs fixed term, probation period, start date
+        - **Restrictive covenants:** Non-compete clauses (scope, duration, geography), \
+        non-solicitation, non-disclosure obligations
+        - **Termination:** Conditions for termination, notice periods, severance terms
+        - **Intellectual property:** Work product ownership, invention assignment clauses
+        - **Dispute resolution:** Arbitration clauses, governing law, venue
+        - **Red flags:** One-sided terms, unusually broad non-competes, IP assignment \
+        beyond work scope, waiver of class action rights
+
+        For each insight, provide a short title, detailed description, category, \
+        severity (0.0-1.0), and a supporting quote from the text.
+
+        EMPLOYMENT CONTRACT TEXT:
+        ---
+        \(text)
+        ---
+        """
+    }
+
+    private static func ndaPrompt(text: String) -> String {
+        """
+        You are a non-disclosure agreement analysis assistant. Analyze the following NDA \
+        and extract structured insights.
+
+        Focus specifically on:
+        - **Parties:** Disclosing party, receiving party, mutual vs unilateral
+        - **Scope of confidentiality:** What information is covered, definitions of \
+        confidential information
+        - **Exclusions:** Publicly available info, independently developed, prior knowledge
+        - **Duration:** Term of the agreement, survival period after termination
+        - **Permitted disclosures:** Employees, agents, legal requirements, court orders
+        - **Return/destruction:** Requirements to return or destroy confidential materials
+        - **Remedies:** Injunctive relief, damages, indemnification
+        - **Red flags:** Overly broad definitions, perpetual terms, one-sided obligations, \
+        no carve-outs for legal compliance, residual knowledge restrictions
+
+        For each insight, provide a short title, detailed description, category, \
+        severity (0.0-1.0), and a supporting quote from the text.
+
+        NDA TEXT:
+        ---
+        \(text)
+        ---
+        """
+    }
 }

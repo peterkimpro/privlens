@@ -10,6 +10,7 @@ public struct AnalysisView: View {
     @State private var currentResult: AnalysisResult
     @State private var errorInfo: ErrorRecoveryInfo?
     @State private var showError = false
+    @State private var showExport = false
 
     private let errorRecovery = ErrorRecoveryService()
 
@@ -52,6 +53,14 @@ public struct AnalysisView: View {
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
+                Button {
+                    showExport = true
+                } label: {
+                    Image(systemName: "arrow.down.doc")
+                }
+                .accessibilityIdentifier(AccessibilityIdentifiers.exportPDFButton)
+                .accessibilityLabel(AccessibilityLabels.exportPDF)
+
                 ShareLink(
                     item: shareText,
                     subject: Text("Privlens Analysis"),
@@ -75,6 +84,18 @@ public struct AnalysisView: View {
                 .disabled(isReanalyzing)
                 .accessibilityIdentifier(AccessibilityIdentifiers.analysisReanalyzeButton)
                 .accessibilityLabel(isReanalyzing ? "Reanalyzing document" : "Reanalyze document")
+            }
+        }
+        .sheet(isPresented: $showExport) {
+            NavigationStack {
+                ExportView(document: document, result: currentResult)
+                    .navigationTitle("Export")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Done") { showExport = false }
+                        }
+                    }
             }
         }
         .alert("Error", isPresented: $showError, presenting: errorInfo) { info in

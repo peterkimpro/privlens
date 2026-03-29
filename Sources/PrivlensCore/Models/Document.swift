@@ -9,6 +9,9 @@ public enum DocumentType: String, Codable, Sendable, CaseIterable {
     case medicalBill
     case lease
     case insurance
+    case taxForm
+    case employmentContract
+    case nda
     case unknown
 
     public var displayName: String {
@@ -16,6 +19,9 @@ public enum DocumentType: String, Codable, Sendable, CaseIterable {
         case .medicalBill: return "Medical Bill"
         case .lease: return "Lease Agreement"
         case .insurance: return "Insurance Document"
+        case .taxForm: return "Tax Form"
+        case .employmentContract: return "Employment Contract"
+        case .nda: return "NDA"
         case .unknown: return "Unknown"
         }
     }
@@ -25,6 +31,9 @@ public enum DocumentType: String, Codable, Sendable, CaseIterable {
         case .medicalBill: return "cross.case.fill"
         case .lease: return "house.fill"
         case .insurance: return "shield.fill"
+        case .taxForm: return "doc.text.fill"
+        case .employmentContract: return "briefcase.fill"
+        case .nda: return "lock.doc.fill"
         case .unknown: return "doc.fill"
         }
     }
