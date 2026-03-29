@@ -2,6 +2,25 @@ import Foundation
 import Testing
 @testable import PrivlensCore
 
+// MARK: - Thread-safe helper
+
+private final class LockedArray<Element: Sendable>: @unchecked Sendable {
+    private var storage: [Element] = []
+    private let lock = NSLock()
+
+    var count: Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return storage.count
+    }
+
+    func append(_ element: Element) {
+        lock.lock()
+        storage.append(element)
+        lock.unlock()
+    }
+}
+
 // MARK: - Mock Services for Batch Tests
 
 private final class MockBatchAnalysisCoordinator: AnalysisCoordinatorProtocol, @unchecked Sendable {
@@ -201,7 +220,7 @@ struct BatchAnalysisServiceTests {
         ]
         let job = BatchJob(title: "Test Batch", entries: entries)
 
-        var progressUpdates: [BatchProgress] = []
+        let progressUpdates = LockedArray<BatchProgress>()
         let result = try await service.analyzeBatch(job, documents: [doc1, doc2]) { progress in
             progressUpdates.append(progress)
         }
