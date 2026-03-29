@@ -131,7 +131,7 @@ public struct ComparisonView: View {
 
                 Image(systemName: document?.documentType.systemIcon ?? "plus.circle.fill")
                     .font(.title2)
-                    .foregroundStyle(document != nil ? .tint : .secondary)
+                    .foregroundColor(document != nil ? .accentColor : .secondary)
             }
             .padding()
             .background(.regularMaterial)
@@ -143,7 +143,7 @@ public struct ComparisonView: View {
 
     // MARK: - Comparison Result
 
-    private func comparisonResultView(_ result: ComparisonResult) -> some View {
+    private func comparisonResultView(_ result: PrivlensCore.ComparisonResult) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             // Similarity Score
             similarityIndicator(result.similarityScore)
@@ -286,7 +286,7 @@ public struct ComparisonView: View {
         .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 
-    private func generateShareText(_ result: ComparisonResult) -> String {
+    private func generateShareText(_ result: PrivlensCore.ComparisonResult) -> String {
         let exportService = PDFExportService()
         return exportService.generateTextReport(
             document: Document(

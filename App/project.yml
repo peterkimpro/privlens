@@ -1,0 +1,29 @@
+name: PrivlensApp
+options:
+  bundleIdPrefix: com.peterkimpro
+  deploymentTarget:
+    iOS: "26.0"
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+packages:
+  PrivlensPackage:
+    path: ..
+targets:
+  PrivlensApp:
+    type: application
+    platform: iOS
+    sources:
+      - path: Privlens
+    dependencies:
+      - package: PrivlensPackage
+        product: PrivlensCore
+      - package: PrivlensPackage
+        product: PrivlensUI
+    settings:
+      base:
+        INFOPLIST_FILE: Privlens/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: com.peterkimpro.privlens
+        PRODUCT_NAME: Privlens
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: ""

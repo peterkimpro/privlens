@@ -8,16 +8,24 @@ public final class DocumentStore: Sendable {
 
     public let modelContainer: ModelContainer
 
-    public init() throws {
+    private static let sharedContainer: ModelContainer = {
         let schema = Schema([Document.self, Folder.self])
         let configuration = ModelConfiguration(
             schema: schema,
             isStoredInMemoryOnly: false
         )
-        self.modelContainer = try ModelContainer(
+        return try! ModelContainer(
             for: schema,
             configurations: [configuration]
         )
+    }()
+
+    public static var shared: DocumentStore {
+        DocumentStore(container: sharedContainer)
+    }
+
+    public init() throws {
+        self.modelContainer = DocumentStore.sharedContainer
     }
 
     /// Creates a store with a custom container (useful for testing with in-memory stores).

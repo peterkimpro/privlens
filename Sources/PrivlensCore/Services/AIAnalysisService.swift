@@ -241,7 +241,11 @@ public final class AIAnalysisService: AIAnalysisServiceProtocol, Sendable {
 
     /// Legacy single-pass stub for backward compatibility.
     public func analyzeDocument(text: String, type: DocumentType) async throws -> AnalysisResult {
-        throw AIAnalysisError.unavailable
+        let chunk = TextChunk(
+            text: text,
+            metadata: ChunkMetadata(chunkIndex: 0, startOffset: 0, endOffset: text.count, sourcePageIndex: 0)
+        )
+        return try await analyzeDocument(chunks: [chunk], documentType: type.rawValue)
     }
 
     // MARK: - Mock Helpers

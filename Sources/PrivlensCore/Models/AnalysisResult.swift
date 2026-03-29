@@ -17,8 +17,12 @@ public struct AnalysisResult: Codable, Sendable {
     @Guide(description: "Recommended next steps or actions the user should take")
     public var actionItems: [String]
 
-    @Guide(description: "The classified type of document")
-    public var documentType: DocumentType
+    @Guide(description: "The classified document type as a raw string, e.g. medicalBill, lease, insurance, taxForm, employmentContract, nda, governmentForm, loanAgreement, homePurchase, unknown")
+    public var documentTypeRaw: String
+
+    public var documentType: DocumentType {
+        DocumentType(rawValue: documentTypeRaw) ?? .unknown
+    }
 
     public init(
         summary: String,
@@ -31,7 +35,7 @@ public struct AnalysisResult: Codable, Sendable {
         self.keyInsights = keyInsights
         self.redFlags = redFlags
         self.actionItems = actionItems
-        self.documentType = documentType
+        self.documentTypeRaw = documentType.rawValue
     }
 }
 

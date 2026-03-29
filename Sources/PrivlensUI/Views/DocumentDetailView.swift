@@ -42,6 +42,14 @@ public struct DocumentDetailView: View {
         }
         .navigationTitle(document.title)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                NavigationLink(destination: ConversationView(document: document)) {
+                    Image(systemName: "bubble.left.and.bubble.right")
+                }
+                .accessibilityLabel("Ask questions about this document")
+            }
+        }
     }
 
     // MARK: - Analysis Tab
@@ -83,9 +91,9 @@ public struct DocumentDetailView: View {
                 // Red Flags
                 if !document.redFlags.isEmpty {
                     VStack(alignment: .leading, spacing: 12) {
-                        Label("Red Flags", systemImage: "exclamationmark.triangle.fill")
+                        Label("Watch Out For", systemImage: "exclamationmark.triangle.fill")
                             .font(.headline)
-                            .foregroundStyle(.red)
+                            .foregroundStyle(.orange)
 
                         ForEach(document.redFlags, id: \.self) { flag in
                             HStack(alignment: .top, spacing: 8) {

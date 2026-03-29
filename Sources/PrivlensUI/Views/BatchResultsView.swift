@@ -202,9 +202,9 @@ public struct BatchResultsView: View {
 
     private var redFlagsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Label("All Red Flags", systemImage: "exclamationmark.triangle.fill")
+            Label("Watch Out For", systemImage: "exclamationmark.triangle.fill")
                 .font(.headline)
-                .foregroundStyle(.red)
+                .foregroundStyle(.orange)
 
             ForEach(Array(batchJob.allRedFlags.enumerated()), id: \.offset) { _, item in
                 HStack(alignment: .top, spacing: 8) {

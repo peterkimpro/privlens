@@ -117,7 +117,7 @@ public struct RemindersView: View {
                     .lineLimit(2)
 
                 HStack(spacing: 8) {
-                    Label(reminder.date, format: .dateTime.hour().minute())
+                    Text(reminder.date, format: .dateTime.hour().minute())
                         .font(.caption2)
                         .foregroundStyle(.tint)
 

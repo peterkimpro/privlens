@@ -175,7 +175,7 @@ public struct ConversationView: View {
             } label: {
                 Image(systemName: "arrow.up.circle.fill")
                     .font(.title2)
-                    .foregroundStyle(viewModel.canSend ? .tint : .secondary)
+                    .foregroundColor(viewModel.canSend ? .accentColor : .secondary)
             }
             .disabled(!viewModel.canSend)
             .accessibilityLabel("Send question")

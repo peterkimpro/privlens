@@ -152,7 +152,7 @@ public struct SettingsView: View {
         } else if paywallManager.isInTrial {
             return .orange
         } else {
-            return .tint
+            return .accentColor
         }
     }
 

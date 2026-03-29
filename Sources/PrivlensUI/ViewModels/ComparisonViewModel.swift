@@ -9,7 +9,7 @@ public final class ComparisonViewModel {
     public var documents: [Document] = []
     public var selectedDocumentA: Document?
     public var selectedDocumentB: Document?
-    public var comparisonResult: ComparisonResult?
+    public var comparisonResult: PrivlensCore.ComparisonResult?
     public var isComparing = false
     public var isLoading = false
     public var errorMessage: String?
@@ -37,7 +37,7 @@ public final class ComparisonViewModel {
     }
 
     public func runComparison() async {
-        guard let docA = selectedDocumentA, let docB = selectedDocumentB else {
+        guard let selectedA = selectedDocumentA, let selectedB = selectedDocumentB else {
             errorMessage = "Please select two documents to compare."
             return
         }
@@ -45,6 +45,9 @@ public final class ComparisonViewModel {
         isComparing = true
         errorMessage = nil
         defer { isComparing = false }
+
+        nonisolated(unsafe) let docA = selectedA
+        nonisolated(unsafe) let docB = selectedB
 
         do {
             comparisonResult = try await comparisonService.compare(documentA: docA, documentB: docB)

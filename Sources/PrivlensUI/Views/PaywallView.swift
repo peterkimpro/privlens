@@ -114,7 +114,7 @@ public struct PaywallView: View {
             featureRow("Document Scanning", free: true, pro: true)
             featureRow("OCR Text Extraction", free: true, pro: true)
             featureRow("AI Analysis", free: "3/mo", pro: "Unlimited")
-            featureRow("Red Flag Detection", free: true, pro: true)
+            featureRow("Risk Detection", free: true, pro: true)
             featureRow("Document Library", free: true, pro: true)
             featureRow("Priority Processing", free: false, pro: true)
         }

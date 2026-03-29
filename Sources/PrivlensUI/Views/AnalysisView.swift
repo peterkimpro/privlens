@@ -151,9 +151,9 @@ public struct AnalysisView: View {
 
     private var redFlagsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Label("Red Flags", systemImage: "exclamationmark.triangle.fill")
+            Label("Watch Out For", systemImage: "exclamationmark.triangle.fill")
                 .font(.headline)
-                .foregroundStyle(.red)
+                .foregroundStyle(.orange)
                 .accessibilityLabel(AccessibilityLabels.redFlagCount(currentResult.redFlags.count))
 
             ForEach(currentResult.redFlags, id: \.self) { flag in
@@ -246,7 +246,7 @@ public struct AnalysisView: View {
         text += "Summary:\n\(currentResult.summary)\n\n"
 
         if !currentResult.redFlags.isEmpty {
-            text += "Red Flags:\n"
+            text += "Watch Out For:\n"
             for flag in currentResult.redFlags {
                 text += "- \(flag)\n"
             }

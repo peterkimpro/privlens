@@ -70,7 +70,7 @@ public struct BatchAnalysisView: View {
                     : "circle"
                 )
                 .font(.title2)
-                .foregroundStyle(viewModel.selectedDocumentIds.contains(document.id) ? .tint : .secondary)
+                .foregroundColor(viewModel.selectedDocumentIds.contains(document.id) ? .accentColor : .secondary)
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(document.title)

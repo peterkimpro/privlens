@@ -1,6 +1,7 @@
 #if canImport(SwiftUI) && canImport(UIKit)
 import SwiftUI
 import UIKit
+import PhotosUI
 import PrivlensCore
 
 @Observable
@@ -85,9 +86,18 @@ public final class ScanViewModel {
                 thumbnailData = resized.jpegData(compressionQuality: 0.6)
             }
 
-            // Create document with page images
+            // Create document with page images — derive a short title from the summary
+            let autoTitle: String
+            if docType != .unknown {
+                autoTitle = "\(docType.displayName) - \(Date().formatted(date: .abbreviated, time: .omitted))"
+            } else {
+                let summaryWords = result.summary.split(separator: " ").prefix(6).joined(separator: " ")
+                autoTitle = summaryWords.isEmpty
+                    ? "Document - \(Date().formatted(date: .abbreviated, time: .omitted))"
+                    : summaryWords
+            }
             let document = Document(
-                title: "\(docType.displayName) - \(Date().formatted(date: .abbreviated, time: .omitted))",
+                title: autoTitle,
                 rawText: trimmedText,
                 documentType: docType,
                 analysisResult: result.summary,
@@ -117,7 +127,23 @@ public final class ScanViewModel {
         processingStatus = "Importing photo..."
         defer { isProcessing = false }
 
-        errorMessage = "Photo import will be available when running on device."
+        guard let pickerItem = item as? PhotosPickerItem else {
+            errorMessage = "Unable to read selected photo."
+            return
+        }
+
+        do {
+            guard let data = try await pickerItem.loadTransferable(type: Data.self),
+                  let uiImage = UIImage(data: data),
+                  let cgImage = uiImage.cgImage else {
+                errorMessage = "Could not load image from photo library."
+                return
+            }
+
+            await processScannedImages([cgImage])
+        } catch {
+            errorMessage = error.localizedDescription
+        }
     }
 
     /// Resets state so the user can scan another document.

@@ -3,7 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "Privlens",
-    platforms: [.iOS(.v18), .macOS(.v15)],
+    platforms: [.iOS("26.0"), .macOS(.v15)],
     products: [
         .library(name: "PrivlensCore", targets: ["PrivlensCore"]),
         .library(name: "PrivlensUI", targets: ["PrivlensUI"]),
@@ -12,7 +12,10 @@ let package = Package(
         .target(
             name: "PrivlensCore",
             dependencies: [],
-            path: "Sources/PrivlensCore"
+            path: "Sources/PrivlensCore",
+            swiftSettings: [
+                .define("ENABLE_FOUNDATION_MODELS", .when(platforms: [.iOS, .macOS]))
+            ]
         ),
         .target(
             name: "PrivlensUI",

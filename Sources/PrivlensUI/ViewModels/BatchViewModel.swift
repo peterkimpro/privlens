@@ -66,8 +66,9 @@ public final class BatchViewModel {
         currentProgress = 0.0
         defer { isAnalyzing = false }
 
-        let selectedDocs = documents.filter { selectedDocumentIds.contains($0.id) }
-        let entries = selectedDocs.map { doc in
+        let filteredDocs = documents.filter { selectedDocumentIds.contains($0.id) }
+        nonisolated(unsafe) let selectedDocs = filteredDocs
+        let entries = filteredDocs.map { doc in
             BatchDocumentEntry(documentId: doc.id, title: doc.title)
         }
 
