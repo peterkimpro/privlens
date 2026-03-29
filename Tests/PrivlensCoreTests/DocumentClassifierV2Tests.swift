@@ -149,6 +149,6 @@ struct DocumentClassifierV2Tests {
         #expect(allCases.contains(.taxForm))
         #expect(allCases.contains(.employmentContract))
         #expect(allCases.contains(.nda))
-        #expect(allCases.count == 7) // medicalBill, lease, insurance, taxForm, employmentContract, nda, unknown
+        #expect(allCases.count == 10) // medicalBill, lease, insurance, taxForm, employmentContract, nda, governmentForm, loanAgreement, homePurchase, unknown
     }
 }

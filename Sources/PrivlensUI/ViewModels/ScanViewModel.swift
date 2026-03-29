@@ -14,8 +14,12 @@ public final class ScanViewModel {
     /// Set to true once a document has been saved — drives post-scan navigation.
     public var didSaveDocument = false
 
+    /// When true, uses AI-powered smart classification; falls back to keyword-based otherwise.
+    public var useSmartDetection: Bool = true
+
     private let ocrService = OCRService()
-    private let classifier = DocumentClassifier()
+    private let keywordClassifier = DocumentClassifier()
+    private let smartClassifier = SmartClassifier()
     private let aiService = AIAnalysisService()
     private let scannerService = ScannerService()
     private let store: DocumentStore?
@@ -56,9 +60,14 @@ public final class ScanViewModel {
                 return
             }
 
-            // Classify
+            // Classify (smart AI detection by default, keyword fallback if disabled)
             processingStatus = "Classifying document..."
-            let docType = classifier.classify(text: trimmedText)
+            let docType: DocumentType
+            if useSmartDetection {
+                docType = await smartClassifier.classify(text: trimmedText)
+            } else {
+                docType = keywordClassifier.classify(text: trimmedText)
+            }
 
             // Analyze with AI
             processingStatus = "Analyzing with on-device AI..."
@@ -136,6 +145,7 @@ public final class ScanViewModel {
     public var latestDocument: Document?
     public var errorMessage: String?
     public var didSaveDocument = false
+    public var useSmartDetection: Bool = true
 
     public var isScanningSupported: Bool { false }
 

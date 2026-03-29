@@ -15,6 +15,9 @@ public final class DocumentClassifier: Sendable {
             (.taxForm, scoreTaxForm(lowercased)),
             (.employmentContract, scoreEmploymentContract(lowercased)),
             (.nda, scoreNDA(lowercased)),
+            (.governmentForm, scoreGovernmentForm(lowercased)),
+            (.loanAgreement, scoreLoanAgreement(lowercased)),
+            (.homePurchase, scoreHomePurchase(lowercased)),
         ]
 
         guard let best = scores.max(by: { $0.1 < $1.1 }), best.1 > 0 else {
@@ -161,6 +164,84 @@ public final class DocumentClassifier: Sendable {
             "non-circumvention",
             "survival", "surviving obligations",
             "indemnification",
+        ]
+        return countMatches(in: text, keywords: keywords)
+    }
+
+    private func scoreGovernmentForm(_ text: String) -> Int {
+        let keywords = [
+            "department of", "form w-2", "form 1099", "form 1040",
+            "internal revenue service", "irs",
+            "social security", "ssa", "social security administration",
+            "department of motor vehicles", "dmv", "driver license", "driver's license",
+            "vehicle registration", "title certificate",
+            "immigration", "uscis", "i-94", "i-130", "i-140", "i-485", "i-765",
+            "green card", "permanent resident", "visa application",
+            "naturalization", "citizenship",
+            "government agency", "federal", "state of",
+            "taxpayer identification", "tin", "itin",
+            "employer identification number", "ein",
+            "wage and tax statement",
+            "certificate of", "official use only",
+            "department of homeland security",
+            "selective service", "veteran",
+            "medicare card", "medicaid",
+            "food stamp", "snap benefits",
+            "unemployment insurance", "unemployment claim",
+        ]
+        return countMatches(in: text, keywords: keywords)
+    }
+
+    private func scoreLoanAgreement(_ text: String) -> Int {
+        let keywords = [
+            "loan agreement", "promissory note", "loan contract",
+            "borrower", "lender", "co-borrower", "co-signer",
+            "principal amount", "principal balance", "loan amount",
+            "interest rate", "annual percentage rate", "apr",
+            "monthly payment", "payment schedule", "amortization",
+            "mortgage", "deed of trust", "home loan",
+            "auto loan", "vehicle loan", "car loan",
+            "student loan", "education loan", "federal student",
+            "personal loan", "unsecured loan", "line of credit",
+            "collateral", "secured by", "security interest",
+            "loan term", "maturity date", "payoff date",
+            "late payment fee", "late charge", "grace period",
+            "prepayment penalty", "prepayment",
+            "default", "acceleration clause", "due on demand",
+            "loan origination", "origination fee", "closing costs",
+            "truth in lending", "tila", "regulation z",
+            "forbearance", "deferment", "loan modification",
+            "refinance", "refinancing",
+            "debt-to-income", "credit score",
+            "escrow", "impound account",
+        ]
+        return countMatches(in: text, keywords: keywords)
+    }
+
+    private func scoreHomePurchase(_ text: String) -> Int {
+        let keywords = [
+            "closing disclosure", "settlement statement", "hud-1",
+            "title report", "title search", "title insurance",
+            "title company", "escrow officer", "escrow account",
+            "home inspection", "inspection report", "property inspection",
+            "appraisal", "appraised value", "fair market value",
+            "purchase agreement", "purchase price", "sales contract",
+            "seller", "buyer", "real estate agent", "broker",
+            "earnest money", "good faith deposit",
+            "homeowners association", "hoa", "hoa dues", "hoa fees",
+            "cc&r", "covenants conditions and restrictions",
+            "property tax", "real estate tax", "tax assessment",
+            "deed", "warranty deed", "quitclaim deed",
+            "survey", "property survey", "lot description",
+            "zoning", "land use",
+            "contingency", "inspection contingency", "financing contingency",
+            "closing date", "possession date", "settlement date",
+            "transfer tax", "recording fee",
+            "homeowner's insurance", "hazard insurance",
+            "flood zone", "flood insurance",
+            "lead paint", "lead-based paint disclosure",
+            "radon", "termite inspection", "pest inspection",
+            "septic", "well water",
         ]
         return countMatches(in: text, keywords: keywords)
     }

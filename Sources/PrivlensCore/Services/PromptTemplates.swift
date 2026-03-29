@@ -104,6 +104,12 @@ public enum PromptTemplates: Sendable {
             return employmentContractPrompt(text: text)
         case .nda:
             return ndaPrompt(text: text)
+        case .governmentForm:
+            return governmentFormPrompt(text: text)
+        case .loanAgreement:
+            return loanAgreementPrompt(text: text)
+        case .homePurchase:
+            return homePurchasePrompt(text: text)
         default:
             return chunkAnalysisPrompt(text: text, documentType: documentType.displayName)
         }
@@ -155,6 +161,90 @@ public enum PromptTemplates: Sendable {
         severity (0.0-1.0), and a supporting quote from the text.
 
         EMPLOYMENT CONTRACT TEXT:
+        ---
+        \(text)
+        ---
+        """
+    }
+
+    private static func governmentFormPrompt(text: String) -> String {
+        """
+        You are a government document analysis assistant. Analyze the following government form \
+        and extract structured insights.
+
+        Focus specifically on:
+        - **Form identification:** Form type (W-2, 1099, 1040, DMV, SSA, immigration), issuing agency
+        - **Personal information:** Names, SSN, addresses, date of birth, alien registration numbers
+        - **Financial data:** Income figures, tax amounts, withholdings, benefits amounts
+        - **Filing information:** Tax year, filing status, deadlines, due dates
+        - **Status indicators:** Application status, approval/denial, effective dates
+        - **Required actions:** Deadlines to respond, forms to file, appointments to keep
+        - **Immigration specifics:** Visa category, priority dates, receipt numbers, processing times
+        - **Benefits information:** Benefit amounts, eligibility dates, review periods
+        - **Red flags:** Missing information, discrepancies, approaching deadlines, \
+        misclassification, incorrect personal details
+
+        For each insight, provide a short title, detailed description, category, \
+        severity (0.0-1.0), and a supporting quote from the text.
+
+        GOVERNMENT FORM TEXT:
+        ---
+        \(text)
+        ---
+        """
+    }
+
+    private static func loanAgreementPrompt(text: String) -> String {
+        """
+        You are a loan agreement analysis assistant. Analyze the following loan document \
+        and extract structured insights.
+
+        Focus specifically on:
+        - **Loan terms:** Principal amount, interest rate (fixed vs variable), APR, loan term
+        - **Payment details:** Monthly payment, payment schedule, first/last payment dates
+        - **Fees:** Origination fees, closing costs, late payment fees, prepayment penalties
+        - **Collateral:** What secures the loan, lien details, insurance requirements
+        - **Default provisions:** What constitutes default, acceleration clauses, cure periods
+        - **Borrower obligations:** Insurance requirements, property maintenance, financial reporting
+        - **Escrow:** Escrow requirements for taxes, insurance, other impounds
+        - **Variable rate terms:** Index, margin, caps, adjustment periods, floor rates
+        - **Refinancing:** Prepayment terms, refinancing restrictions
+        - **Red flags:** High interest rates, balloon payments, excessive fees, \
+        unfavorable prepayment penalties, one-sided default terms, hidden charges
+
+        For each insight, provide a short title, detailed description, category, \
+        severity (0.0-1.0), and a supporting quote from the text.
+
+        LOAN AGREEMENT TEXT:
+        ---
+        \(text)
+        ---
+        """
+    }
+
+    private static func homePurchasePrompt(text: String) -> String {
+        """
+        You are a home purchase document analysis assistant. Analyze the following home \
+        purchase document and extract structured insights.
+
+        Focus specifically on:
+        - **Transaction details:** Purchase price, earnest money, closing date, possession date
+        - **Closing costs:** Itemized fees, lender charges, title fees, government recording fees
+        - **Title information:** Title status, liens, encumbrances, easements, restrictions
+        - **Inspection findings:** Structural issues, safety concerns, repair needs, estimated costs
+        - **HOA details:** Monthly/annual dues, special assessments, reserves, rules and restrictions
+        - **Contingencies:** Inspection, financing, appraisal contingency deadlines and terms
+        - **Property details:** Legal description, lot size, zoning, flood zone status
+        - **Disclosures:** Seller disclosures, lead paint, environmental hazards, material defects
+        - **Insurance:** Required coverage, flood insurance, title insurance
+        - **Red flags:** Unresolved liens, failed inspection items, high HOA fees, \
+        special assessments pending, environmental concerns, boundary disputes, \
+        missing disclosures, unrealistic closing timeline
+
+        For each insight, provide a short title, detailed description, category, \
+        severity (0.0-1.0), and a supporting quote from the text.
+
+        HOME PURCHASE DOCUMENT TEXT:
         ---
         \(text)
         ---

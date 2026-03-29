@@ -12,6 +12,9 @@ public enum DocumentType: String, Codable, Sendable, CaseIterable {
     case taxForm
     case employmentContract
     case nda
+    case governmentForm
+    case loanAgreement
+    case homePurchase
     case unknown
 
     public var displayName: String {
@@ -22,6 +25,9 @@ public enum DocumentType: String, Codable, Sendable, CaseIterable {
         case .taxForm: return "Tax Form"
         case .employmentContract: return "Employment Contract"
         case .nda: return "NDA"
+        case .governmentForm: return "Government Form"
+        case .loanAgreement: return "Loan Agreement"
+        case .homePurchase: return "Home Purchase"
         case .unknown: return "Unknown"
         }
     }
@@ -34,7 +40,40 @@ public enum DocumentType: String, Codable, Sendable, CaseIterable {
         case .taxForm: return "doc.text.fill"
         case .employmentContract: return "briefcase.fill"
         case .nda: return "lock.doc.fill"
+        case .governmentForm: return "building.columns.fill"
+        case .loanAgreement: return "banknote.fill"
+        case .homePurchase: return "house.and.flag.fill"
         case .unknown: return "doc.fill"
+        }
+    }
+
+    public var documentDescription: String {
+        switch self {
+        case .medicalBill: return "Medical bills, EOBs, and healthcare-related charges"
+        case .lease: return "Rental and lease agreements for residential or commercial property"
+        case .insurance: return "Insurance policies, coverage documents, and claims"
+        case .taxForm: return "Tax returns, W-2s, 1099s, and related tax documents"
+        case .employmentContract: return "Employment agreements, offer letters, and work contracts"
+        case .nda: return "Non-disclosure and confidentiality agreements"
+        case .governmentForm: return "Tax forms (W-2, 1099, 1040), DMV forms, social security letters, and immigration documents"
+        case .loanAgreement: return "Mortgages, auto loans, student loans, and personal loan agreements"
+        case .homePurchase: return "Closing disclosures, title reports, home inspection reports, and HOA documents"
+        case .unknown: return "Unclassified document"
+        }
+    }
+
+    public var themeColorName: String {
+        switch self {
+        case .medicalBill: return "red"
+        case .lease: return "brown"
+        case .insurance: return "blue"
+        case .taxForm: return "green"
+        case .employmentContract: return "purple"
+        case .nda: return "gray"
+        case .governmentForm: return "indigo"
+        case .loanAgreement: return "orange"
+        case .homePurchase: return "teal"
+        case .unknown: return "secondary"
         }
     }
 }
