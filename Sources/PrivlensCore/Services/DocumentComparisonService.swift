@@ -74,21 +74,24 @@ public enum DifferenceCategory: String, Codable, Sendable, Hashable, CaseIterabl
 /// The full result of comparing two documents.
 public struct ComparisonResult: Codable, Sendable, Hashable, Identifiable {
     public let id: UUID
-    /// ID of the first document (A).
     public let documentAId: UUID
-    /// ID of the second document (B).
     public let documentBId: UUID
-    /// Title of document A.
     public let documentATitle: String
-    /// Title of document B.
     public let documentBTitle: String
-    /// Summary of the comparison.
+    /// What type of document A is (e.g. "window replacement quote")
+    public let documentAType: String
+    /// What type of document B is (e.g. "HOA agreement")
+    public let documentBType: String
+    /// Whether the two documents are the same type and directly comparable
+    public let areRelated: Bool
     public let summary: String
-    /// Individual differences found.
+    /// Key things to know about document A
+    public let highlightsA: [String]
+    /// Key things to know about document B
+    public let highlightsB: [String]
+    /// Direct differences (only meaningful when documents are related)
     public let differences: [ComparisonDifference]
-    /// Overall similarity score from 0.0 (completely different) to 1.0 (identical).
     public let similarityScore: Double
-    /// When the comparison was performed.
     public let comparedAt: Date
 
     public init(
@@ -97,7 +100,12 @@ public struct ComparisonResult: Codable, Sendable, Hashable, Identifiable {
         documentBId: UUID,
         documentATitle: String,
         documentBTitle: String,
+        documentAType: String = "",
+        documentBType: String = "",
+        areRelated: Bool = true,
         summary: String,
+        highlightsA: [String] = [],
+        highlightsB: [String] = [],
         differences: [ComparisonDifference],
         similarityScore: Double,
         comparedAt: Date = Date()
@@ -107,13 +115,17 @@ public struct ComparisonResult: Codable, Sendable, Hashable, Identifiable {
         self.documentBId = documentBId
         self.documentATitle = documentATitle
         self.documentBTitle = documentBTitle
+        self.documentAType = documentAType
+        self.documentBType = documentBType
+        self.areRelated = areRelated
         self.summary = summary
+        self.highlightsA = highlightsA
+        self.highlightsB = highlightsB
         self.differences = differences
         self.similarityScore = similarityScore
         self.comparedAt = comparedAt
     }
 
-    /// Differences filtered by severity threshold.
     public func criticalDifferences(threshold: Double = 0.7) -> [ComparisonDifference] {
         differences.filter { $0.severity >= threshold }
     }
@@ -197,7 +209,10 @@ public final class DocumentComparisonService: DocumentComparisonServiceProtocol,
         textB: String
     ) -> String {
         """
-        Compare these two documents and explain the differences to the user.
+        You are a document analysis assistant. The user wants to compare two documents.
+
+        IMPORTANT: First determine if these are the same type of document or completely \
+        different types. Your analysis must reflect this honestly.
 
         DOCUMENT A ("\(titleA)"):
         ---
@@ -209,21 +224,28 @@ public final class DocumentComparisonService: DocumentComparisonServiceProtocol,
         \(textB)
         ---
 
-        Respond in this exact format. Replace everything after the colon with your actual analysis. \
-        Do not include any brackets, placeholders, or template text.
+        Respond using this exact format. Write real content, never placeholders or brackets.
 
-        SIMILARITY: 75
+        TYPE_A: [what kind of document A is, e.g. window replacement quote]
+        TYPE_B: [what kind of document B is, e.g. HOA agreement]
+        RELATED: [yes or no — are these the same kind of document?]
+        SIMILARITY: [0-100 number]
 
-        SUMMARY: These two documents are both window replacement quotes. Document A offers \
-        10 windows for $5,000 while Document B offers the same for $6,500 but includes a 10-year warranty.
+        SUMMARY: [If the documents are different types, say so clearly. Explain what each \
+        document is and note they serve different purposes. If they are the same type, \
+        explain how they compare. Be honest and specific. 2-4 sentences.]
 
-        DIFF|financial|Price difference|$5,000 total|$6,500 total|60
-        DIFF|coverage|Warranty coverage|No warranty mentioned|Includes 10-year warranty|70
-        DIFF|term|Installation timeline|2-3 weeks|1 week guaranteed|40
+        For each document, list the key things a person should know. Use this format:
+        ABOUT_A|[one important thing about document A]
+        ABOUT_A|[another important thing about document A]
+        ABOUT_B|[one important thing about document B]
+        ABOUT_B|[another important thing about document B]
 
-        The example above is just to show the format. Now write your actual comparison of the two documents. \
-        Each DIFF line must have real content from the documents, not placeholder text. \
-        Only include differences that actually matter. Do not use markdown formatting.
+        If the documents ARE the same type and comparable, also include direct differences:
+        DIFF|[category]|[what is different]|[document A says]|[document B says]|[severity 0-100]
+        Categories: financial, legal, date, term, obligation, coverage, other
+
+        Do not use markdown formatting. Write naturally.
         """
     }
 
@@ -234,6 +256,11 @@ public final class DocumentComparisonService: DocumentComparisonServiceProtocol,
     ) -> ComparisonResult {
         var similarity = 0.5
         var summary = "Comparison complete."
+        var typeA = ""
+        var typeB = ""
+        var areRelated = true
+        var highlightsA: [String] = []
+        var highlightsB: [String] = []
         var differences: [ComparisonDifference] = []
 
         let lines = response.components(separatedBy: .newlines)
@@ -241,7 +268,14 @@ public final class DocumentComparisonService: DocumentComparisonServiceProtocol,
         for line in lines {
             let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
 
-            if trimmed.hasPrefix("SIMILARITY:") {
+            if trimmed.hasPrefix("TYPE_A:") {
+                typeA = trimmed.replacingOccurrences(of: "TYPE_A:", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
+            } else if trimmed.hasPrefix("TYPE_B:") {
+                typeB = trimmed.replacingOccurrences(of: "TYPE_B:", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
+            } else if trimmed.hasPrefix("RELATED:") {
+                let value = trimmed.replacingOccurrences(of: "RELATED:", with: "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+                areRelated = value.hasPrefix("yes")
+            } else if trimmed.hasPrefix("SIMILARITY:") {
                 let value = trimmed.replacingOccurrences(of: "SIMILARITY:", with: "")
                     .trimmingCharacters(in: .whitespacesAndNewlines)
                     .replacingOccurrences(of: "%", with: "")
@@ -251,6 +285,12 @@ public final class DocumentComparisonService: DocumentComparisonServiceProtocol,
             } else if trimmed.hasPrefix("SUMMARY:") {
                 summary = trimmed.replacingOccurrences(of: "SUMMARY:", with: "")
                     .trimmingCharacters(in: .whitespacesAndNewlines)
+            } else if trimmed.hasPrefix("ABOUT_A|") {
+                let content = trimmed.replacingOccurrences(of: "ABOUT_A|", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
+                if !content.isEmpty { highlightsA.append(content) }
+            } else if trimmed.hasPrefix("ABOUT_B|") {
+                let content = trimmed.replacingOccurrences(of: "ABOUT_B|", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
+                if !content.isEmpty { highlightsB.append(content) }
             } else if trimmed.hasPrefix("DIFF|") {
                 let parts = trimmed.components(separatedBy: "|")
                 if parts.count >= 6 {
@@ -273,11 +313,11 @@ public final class DocumentComparisonService: DocumentComparisonServiceProtocol,
             }
         }
 
-        // If AI didn't produce SUMMARY on its own line, use first meaningful paragraph
+        // Fallback summary
         if summary == "Comparison complete." {
             let paragraphs = response.components(separatedBy: "\n\n")
                 .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-                .filter { !$0.isEmpty && !$0.hasPrefix("SIMILARITY") && !$0.hasPrefix("DIFF") && !$0.hasPrefix("DIFFERENCES") }
+                .filter { !$0.isEmpty && !$0.hasPrefix("SIMILARITY") && !$0.hasPrefix("DIFF") && !$0.hasPrefix("TYPE_") && !$0.hasPrefix("RELATED") && !$0.hasPrefix("ABOUT_") }
             if let first = paragraphs.first {
                 summary = first
             }
@@ -288,7 +328,12 @@ public final class DocumentComparisonService: DocumentComparisonServiceProtocol,
             documentBId: documentB.id,
             documentATitle: documentA.title,
             documentBTitle: documentB.title,
+            documentAType: typeA,
+            documentBType: typeB,
+            areRelated: areRelated,
             summary: summary,
+            highlightsA: highlightsA,
+            highlightsB: highlightsB,
             differences: differences,
             similarityScore: similarity
         )

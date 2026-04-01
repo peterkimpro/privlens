@@ -145,8 +145,39 @@ public struct ComparisonView: View {
 
     private func comparisonResultView(_ result: PrivlensCore.ComparisonResult) -> some View {
         VStack(alignment: .leading, spacing: 16) {
+            // Not related banner
+            if !result.areRelated {
+                HStack(spacing: 10) {
+                    Image(systemName: "info.circle.fill")
+                        .foregroundStyle(.orange)
+                    Text("These are different types of documents and may not be directly comparable.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(.orange.opacity(0.1))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+            }
+
             // Similarity Score
             similarityIndicator(result.similarityScore)
+
+            // Document types
+            if !result.documentAType.isEmpty || !result.documentBType.isEmpty {
+                HStack(spacing: 12) {
+                    documentTypeTag(
+                        title: viewModel.selectedDocumentA?.title ?? "Document A",
+                        type: result.documentAType,
+                        color: .blue
+                    )
+                    documentTypeTag(
+                        title: viewModel.selectedDocumentB?.title ?? "Document B",
+                        type: result.documentBType,
+                        color: .indigo
+                    )
+                }
+            }
 
             // Summary
             VStack(alignment: .leading, spacing: 8) {
@@ -162,7 +193,23 @@ public struct ComparisonView: View {
             .clipShape(RoundedRectangle(cornerRadius: 12))
             .accessibilityIdentifier(AccessibilityIdentifiers.comparisonSummary)
 
-            // Differences
+            // Per-document highlights
+            if !result.highlightsA.isEmpty {
+                documentHighlights(
+                    title: viewModel.selectedDocumentA?.title ?? "Document A",
+                    highlights: result.highlightsA,
+                    color: .blue
+                )
+            }
+            if !result.highlightsB.isEmpty {
+                documentHighlights(
+                    title: viewModel.selectedDocumentB?.title ?? "Document B",
+                    highlights: result.highlightsB,
+                    color: .indigo
+                )
+            }
+
+            // Direct differences (only when documents are comparable)
             if !result.differences.isEmpty {
                 differencesSection(result.differences)
             }
@@ -231,6 +278,45 @@ public struct ComparisonView: View {
         .background(.regularMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .accessibilityLabel(AccessibilityLabels.comparisonSummary(similarityPercent: percent))
+    }
+
+    private func documentTypeTag(title: String, type: String, color: Color) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.caption.bold())
+                .foregroundStyle(color)
+            Text(type.isEmpty ? "Document" : type)
+                .font(.subheadline)
+                .foregroundStyle(.primary)
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(color.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+    }
+
+    private func documentHighlights(title: String, highlights: [String], color: Color) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label(title, systemImage: "eye.fill")
+                .font(.headline)
+                .foregroundStyle(color)
+
+            ForEach(highlights, id: \.self) { highlight in
+                HStack(alignment: .top, spacing: 8) {
+                    Image(systemName: "info.circle.fill")
+                        .foregroundStyle(color)
+                        .font(.caption)
+                        .padding(.top, 2)
+                    Text(highlight)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(color.opacity(0.06))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     private func differencesSection(_ differences: [ComparisonDifference]) -> some View {

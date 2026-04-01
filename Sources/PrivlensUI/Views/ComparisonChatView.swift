@@ -186,7 +186,6 @@ public struct ComparisonChatView: View {
     }
 
     private func askAboutComparison(question: String) async throws -> String {
-        #if ENABLE_FOUNDATION_MODELS
         let service = ComparisonChatService()
         return try await service.ask(
             question: question,
@@ -195,9 +194,6 @@ public struct ComparisonChatView: View {
             comparisonSummary: comparisonSummary,
             history: messages
         )
-        #else
-        return "Comparison chat requires Apple Foundation Models on iOS 26+."
-        #endif
     }
 }
 
