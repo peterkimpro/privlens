@@ -127,13 +127,13 @@ public struct AnalysisView: View {
 
     private var headerSection: some View {
         HStack {
-            Image(systemName: currentResult.documentType.systemIcon)
+            Image(systemName: "doc.text.magnifyingglass")
                 .font(.title)
                 .foregroundStyle(.tint)
                 .accessibilityHidden(true)
 
             VStack(alignment: .leading) {
-                Text(currentResult.documentType.displayName)
+                Text(document.title)
                     .font(.title2.bold())
                 Text(document.dateScanned, style: .date)
                     .font(.subheadline)
@@ -146,7 +146,7 @@ public struct AnalysisView: View {
         .background(.regularMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(AccessibilityLabels.documentType(currentResult.documentType.displayName))
+        .accessibilityLabel(AccessibilityLabels.documentType(document.title))
     }
 
     private var redFlagsSection: some View {

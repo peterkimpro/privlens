@@ -31,10 +31,7 @@ public struct ScannerView: View {
                         }
 
                         NavigationLink(
-                            destination: AnalysisView(
-                                document: document,
-                                result: result
-                            )
+                            destination: DocumentDetailView(document: document)
                         ) {
                             resultPreviewCard(result)
                         }
@@ -183,9 +180,9 @@ public struct ScannerView: View {
     private func resultPreviewCard(_ result: AnalysisResult) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Image(systemName: result.documentType.systemIcon)
+                Image(systemName: "doc.text.magnifyingglass")
                     .foregroundStyle(.tint)
-                Text(result.documentType.displayName)
+                Text(viewModel.latestDocument?.title ?? "Scan Complete")
                     .font(.headline)
                 Spacer()
                 Image(systemName: "chevron.right")
