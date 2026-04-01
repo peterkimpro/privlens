@@ -5,6 +5,7 @@ import PrivlensCore
 public struct ConversationView: View {
     @State private var viewModel: ConversationViewModel
     @FocusState private var isInputFocused: Bool
+    @State private var showClearConfirmation = false
 
     public init(document: Document) {
         self._viewModel = State(initialValue: ConversationViewModel(document: document))
@@ -60,13 +61,21 @@ public struct ConversationView: View {
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button {
-                    viewModel.clearConversation()
+                    showClearConfirmation = true
                 } label: {
                     Image(systemName: "arrow.counterclockwise")
                 }
                 .disabled(viewModel.messages.isEmpty)
                 .accessibilityLabel("Clear conversation")
             }
+        }
+        .alert("Clear Conversation?", isPresented: $showClearConfirmation) {
+            Button("Cancel", role: .cancel) {}
+            Button("Clear All", role: .destructive) {
+                viewModel.clearConversation()
+            }
+        } message: {
+            Text("This will delete your entire conversation history with this document. This cannot be undone.")
         }
     }
 
