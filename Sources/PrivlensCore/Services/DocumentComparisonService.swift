@@ -197,8 +197,7 @@ public final class DocumentComparisonService: DocumentComparisonServiceProtocol,
         textB: String
     ) -> String {
         """
-        You are a document comparison assistant. Compare these two documents and explain \
-        the meaningful differences to the user in plain, natural language.
+        Compare these two documents and explain the differences to the user.
 
         DOCUMENT A ("\(titleA)"):
         ---
@@ -210,23 +209,21 @@ public final class DocumentComparisonService: DocumentComparisonServiceProtocol,
         \(textB)
         ---
 
-        Provide your comparison in this exact format (keep the labels exactly as shown):
+        Respond in this exact format. Replace everything after the colon with your actual analysis. \
+        Do not include any brackets, placeholders, or template text.
 
-        SIMILARITY: [a number from 0 to 100 representing how similar these documents are]
+        SIMILARITY: 75
 
-        SUMMARY: [A 2-4 sentence plain language summary of how these documents compare. \
-        What are they? How do they relate? What are the most important differences a person should know about?]
+        SUMMARY: These two documents are both window replacement quotes. Document A offers \
+        10 windows for $5,000 while Document B offers the same for $6,500 but includes a 10-year warranty.
 
-        DIFFERENCES:
-        [For each meaningful difference, write one line in this format:]
-        DIFF|[category]|[short label]|[what document A says]|[what document B says]|[severity 0-100]
+        DIFF|financial|Price difference|$5,000 total|$6,500 total|60
+        DIFF|coverage|Warranty coverage|No warranty mentioned|Includes 10-year warranty|70
+        DIFF|term|Installation timeline|2-3 weeks|1 week guaranteed|40
 
-        Categories must be one of: financial, legal, date, term, obligation, coverage, other
-        Severity: 0 = minor/informational, 100 = critical/needs immediate attention
-
-        Focus on differences that actually matter to the person reading these documents. \
-        Do not list trivial wording differences. Do not use markdown formatting. \
-        Write naturally as if explaining to someone.
+        The example above is just to show the format. Now write your actual comparison of the two documents. \
+        Each DIFF line must have real content from the documents, not placeholder text. \
+        Only include differences that actually matter. Do not use markdown formatting.
         """
     }
 

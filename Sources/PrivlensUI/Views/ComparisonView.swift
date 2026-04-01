@@ -167,6 +167,38 @@ public struct ComparisonView: View {
                 differencesSection(result.differences)
             }
 
+            // Ask AI about differences
+            if let docA = viewModel.selectedDocumentA,
+               let docB = viewModel.selectedDocumentB {
+                NavigationLink(destination: ComparisonChatView(documentA: docA, documentB: docB, comparisonSummary: result.summary)) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "bubble.left.and.text.bubble.right.fill")
+                            .font(.title2)
+                            .foregroundStyle(.white)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Ask About Differences")
+                                .font(.headline)
+                                .foregroundStyle(.white)
+                            Text("Chat with AI about how these documents compare")
+                                .font(.caption)
+                                .foregroundStyle(.white.opacity(0.8))
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .foregroundStyle(.white.opacity(0.6))
+                    }
+                    .padding()
+                    .background(
+                        LinearGradient(
+                            colors: [.blue, .indigo],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                }
+            }
+
             // Export Button
             ShareLink(
                 item: generateShareText(result),
