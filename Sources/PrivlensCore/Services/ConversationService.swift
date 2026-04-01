@@ -61,7 +61,7 @@ public final class ConversationService: ConversationServiceProtocol, Sendable {
         let prompt = buildPrompt(question: trimmed, context: context)
 
         let response = try await session.respond(to: prompt)
-        let answerText = response.content
+        let answerText = Self.stripMarkdown(response.content)
 
         // Extract source attributions by finding quoted passages in the answer
         let attributions = extractAttributions(from: answerText, documentText: context.documentText)
@@ -158,6 +158,34 @@ public final class ConversationService: ConversationServiceProtocol, Sendable {
         Recent conversation:
         \(recentHistory)
         """
+    }
+
+    /// Strips markdown formatting that the model may still produce despite prompt instructions.
+    private static func stripMarkdown(_ text: String) -> String {
+        var result = text
+        // Remove bold/italic markers: **text** → text, *text* → text, __text__ → text
+        // Process longer patterns first to avoid partial matches
+        let patterns: [(String, String)] = [
+            (#"\*\*\*(.+?)\*\*\*"#, "$1"),   // ***bold italic***
+            (#"\*\*(.+?)\*\*"#, "$1"),         // **bold**
+            (#"(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)"#, "$1"), // *italic* (not **)
+            (#"__(.+?)__"#, "$1"),             // __bold__
+            (#"_(.+?)_"#, "$1"),               // _italic_
+            (#"^#{1,6}\s+"#, ""),              // # headers
+            (#"^[\-\*]\s+"#, ""),              // - or * bullet points
+            (#"^\d+\.\s+"#, ""),               // 1. numbered lists
+            (#"`(.+?)`"#, "$1"),               // `code`
+        ]
+        for (pattern, replacement) in patterns {
+            if let regex = try? NSRegularExpression(pattern: pattern, options: .anchorsMatchLines) {
+                result = regex.stringByReplacingMatches(
+                    in: result,
+                    range: NSRange(result.startIndex..., in: result),
+                    withTemplate: replacement
+                )
+            }
+        }
+        return result
     }
 
     private func extractAttributions(from answer: String, documentText: String) -> [SourceAttribution] {
