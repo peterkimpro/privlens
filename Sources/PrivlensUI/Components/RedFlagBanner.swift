@@ -10,17 +10,17 @@ public struct RedFlagBanner: View {
 
     public var body: some View {
         HStack(spacing: 6) {
-            Image(systemName: "exclamationmark.triangle.fill")
+            Image(systemName: "eye.fill")
                 .foregroundStyle(.white)
                 .font(.caption)
 
-            Text("\(count) red flag\(count == 1 ? "" : "s") found")
+            Text("\(count) thing\(count == 1 ? "" : "s") to know")
                 .font(.caption.bold())
                 .foregroundStyle(.white)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
-        .background(.red)
+        .background(.blue)
         .clipShape(Capsule())
     }
 }

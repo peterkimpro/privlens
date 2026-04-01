@@ -208,7 +208,7 @@ public final class AIAnalysisService: AIAnalysisServiceProtocol, Sendable {
         General instructions:
         - Provide a concise 2-3 sentence summary
         - Extract key insights that are actionable and specific
-        - Identify any red flags, hidden fees, unusual clauses, or concerning items
+        - List notable things the user should be aware of (terms, conditions, fine print, fees, deadlines, etc.) — these are informational, not necessarily negative
         - Suggest concrete action items the user should take
         - Classify the document type based on its content
 

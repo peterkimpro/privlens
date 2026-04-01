@@ -118,23 +118,23 @@ public struct DocumentDetailView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
 
-                // Red Flags
+                // Things to Know
                 if !document.redFlags.isEmpty {
                     VStack(alignment: .leading, spacing: 12) {
-                        Label("Watch Out For", systemImage: "exclamationmark.triangle.fill")
+                        Label("Things to Know", systemImage: "eye.fill")
                             .font(.headline)
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(.blue)
 
                         ForEach(document.redFlags, id: \.self) { flag in
                             HStack(alignment: .top, spacing: 8) {
-                                Image(systemName: "xmark.circle.fill")
-                                    .foregroundStyle(.red)
+                                Image(systemName: "info.circle.fill")
+                                    .foregroundStyle(.blue)
                                 Text(flag)
                                     .font(.subheadline)
                             }
                             .padding(12)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(.red.opacity(0.1))
+                            .background(.blue.opacity(0.08))
                             .clipShape(RoundedRectangle(cornerRadius: 8))
                         }
                     }

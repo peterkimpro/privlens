@@ -151,15 +151,15 @@ public struct AnalysisView: View {
 
     private var redFlagsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Label("Watch Out For", systemImage: "exclamationmark.triangle.fill")
+            Label("Things to Know", systemImage: "eye.fill")
                 .font(.headline)
-                .foregroundStyle(.orange)
+                .foregroundStyle(.blue)
                 .accessibilityLabel(AccessibilityLabels.redFlagCount(currentResult.redFlags.count))
 
             ForEach(currentResult.redFlags, id: \.self) { flag in
                 HStack(alignment: .top, spacing: 8) {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.red)
+                    Image(systemName: "info.circle.fill")
+                        .foregroundStyle(.blue)
                         .font(.subheadline)
                         .accessibilityHidden(true)
                     Text(flag)
@@ -167,7 +167,7 @@ public struct AnalysisView: View {
                 }
                 .padding(12)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(.red.opacity(0.1))
+                .background(.blue.opacity(0.08))
                 .clipShape(RoundedRectangle(cornerRadius: 8))
                 .accessibilityElement(children: .combine)
                 .accessibilityLabel(AccessibilityLabels.redFlag(text: flag))
