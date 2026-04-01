@@ -186,13 +186,17 @@ public struct ComparisonChatView: View {
     }
 
     private func askAboutComparison(question: String) async throws -> String {
+        nonisolated(unsafe) let docA = documentA
+        nonisolated(unsafe) let docB = documentB
+        let summary = comparisonSummary
+        let history = messages
         let service = ComparisonChatService()
         return try await service.ask(
             question: question,
-            documentA: documentA,
-            documentB: documentB,
-            comparisonSummary: comparisonSummary,
-            history: messages
+            documentA: docA,
+            documentB: docB,
+            comparisonSummary: summary,
+            history: history
         )
     }
 }
