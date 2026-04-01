@@ -125,7 +125,7 @@ public final class AIAnalysisService: AIAnalysisServiceProtocol, Sendable {
             } catch let retryError where Self.isSafetyFilterError(retryError) {
                 // Attempt 3: chunk-based analysis with smaller text segments
                 let chunkingService = ChunkingService()
-                let config = ChunkingConfiguration(maxChunkSize: 500, overlapSize: 50)
+                let config = ChunkingConfiguration(maxChunkSize: 500, chunkOverlap: 50)
                 let chunks = chunkingService.chunkText(text, configuration: config)
                 guard !chunks.isEmpty else { throw AIAnalysisError.noChunksProvided }
                 return try await analyzeDocument(chunks: chunks, documentType: type.rawValue)
