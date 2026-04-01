@@ -120,9 +120,7 @@ public struct ScannerView: View {
         VStack(spacing: 16) {
             Spacer()
 
-            Image(systemName: "doc.viewfinder")
-                .font(.system(size: 72))
-                .foregroundStyle(.tint)
+            AppLogoView(size: 80)
 
             Text("Scan a Document")
                 .font(.title2.bold())

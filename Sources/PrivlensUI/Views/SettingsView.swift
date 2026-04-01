@@ -65,14 +65,21 @@ public struct SettingsView: View {
 
                 // About
                 Section {
-                    HStack {
-                        Text("Version")
+                    HStack(spacing: 12) {
+                        AppLogoView(size: 50)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Privlens")
+                                .font(.headline)
+                            Text("Private Document AI")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                         Spacer()
-                        Text("1.1.0")
-                            .foregroundStyle(.secondary)
+                        Text("v1.1.0")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
                     }
-                    .accessibilityElement(children: .combine)
-                    .accessibilityLabel("Version 1.0.0")
+                    .padding(.vertical, 4)
 
                     Link(destination: URL(string: "https://privlens.app/support")!) {
                         Label("Help & Support", systemImage: "questionmark.circle")

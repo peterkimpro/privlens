@@ -115,9 +115,7 @@ public struct SearchView: View {
 
             if allDocuments.isEmpty && !isLoading {
                 VStack(spacing: 16) {
-                    Image(systemName: "doc.text.magnifyingglass")
-                        .font(.system(size: 48))
-                        .foregroundStyle(.secondary)
+                    AppLogoView(size: 64)
                     Text("No Documents Yet")
                         .font(.title3.bold())
                     Text("Scan your first document to see it here.")

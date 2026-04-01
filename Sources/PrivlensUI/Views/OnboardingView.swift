@@ -10,6 +10,14 @@ public struct OnboardingView: View {
 
     private let pages: [OnboardingPage] = [
         OnboardingPage(
+            icon: "",
+            iconColor: .blue,
+            title: "Welcome to Privlens",
+            description: "Your documents, understood. Privately. Scan any document, get plain-English insights, and never send a single byte to the cloud.",
+            accessibilityLabel: "Welcome to Privlens. Your documents, understood privately.",
+            showLogo: true
+        ),
+        OnboardingPage(
             icon: "doc.viewfinder",
             iconColor: .blue,
             title: "Scan Any Document",
@@ -59,10 +67,14 @@ public struct OnboardingView: View {
         VStack(spacing: 24) {
             Spacer()
 
-            Image(systemName: page.icon)
-                .font(.system(size: 72))
-                .foregroundStyle(page.iconColor)
-                .accessibilityHidden(true)
+            if page.showLogo {
+                AppLogoView(size: 120)
+            } else {
+                Image(systemName: page.icon)
+                    .font(.system(size: 72))
+                    .foregroundStyle(page.iconColor)
+                    .accessibilityHidden(true)
+            }
 
             Text(page.title)
                 .font(.title.bold())
@@ -135,6 +147,7 @@ private struct OnboardingPage {
     let title: String
     let description: String
     let accessibilityLabel: String
+    var showLogo: Bool = false
 }
 
 #Preview {
