@@ -185,12 +185,11 @@ public struct ComparisonView: View {
 
     private func similarityIndicator(_ score: Double) -> some View {
         let percent = Int(score * 100)
-        let color: Color = score > 0.7 ? .green : score > 0.4 ? .orange : .red
 
         return VStack(spacing: 8) {
             Text("\(percent)%")
                 .font(.system(size: 48, weight: .bold, design: .rounded))
-                .foregroundStyle(color)
+                .foregroundStyle(.blue)
             Text("Similarity")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
@@ -204,71 +203,54 @@ public struct ComparisonView: View {
 
     private func differencesSection(_ differences: [ComparisonDifference]) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Differences")
+            Label("Key Differences", systemImage: "eye.fill")
                 .font(.headline)
+                .foregroundStyle(.blue)
                 .accessibilityLabel(AccessibilityLabels.differenceCount(differences.count))
 
-            let critical = differences.filter { $0.severity >= 0.7 }
-            let other = differences.filter { $0.severity < 0.7 }
-
-            if !critical.isEmpty {
-                Text("Critical")
-                    .font(.subheadline.bold())
-                    .foregroundStyle(.red)
-
-                ForEach(critical) { diff in
-                    differenceCard(diff, isCritical: true)
-                }
-            }
-
-            if !other.isEmpty {
-                Text("Other")
-                    .font(.subheadline.bold())
-                    .foregroundStyle(.secondary)
-
-                ForEach(other) { diff in
-                    differenceCard(diff, isCritical: false)
-                }
+            ForEach(differences) { diff in
+                differenceCard(diff)
             }
         }
         .accessibilityIdentifier(AccessibilityIdentifiers.comparisonDifferences)
     }
 
-    private func differenceCard(_ diff: ComparisonDifference, isCritical: Bool) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Image(systemName: diff.category.systemIcon)
-                    .foregroundStyle(isCritical ? .red : .secondary)
-                Text(diff.label)
-                    .font(.subheadline.bold())
-                    .lineLimit(2)
-            }
+    private func differenceCard(_ diff: ComparisonDifference) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            // What's different
+            Text(diff.label)
+                .font(.subheadline.bold())
 
-            HStack(spacing: 16) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Doc A")
-                        .font(.caption2.bold())
-                        .foregroundStyle(.secondary)
+            // Document A's version
+            if !diff.documentAValue.isEmpty && diff.documentAValue != "Not found" {
+                HStack(alignment: .top, spacing: 8) {
+                    Text(viewModel.selectedDocumentA?.title ?? "Document A")
+                        .font(.caption.bold())
+                        .foregroundStyle(.blue)
+                        .frame(width: 70, alignment: .leading)
                     Text(diff.documentAValue)
                         .font(.caption)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-                Divider()
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Doc B")
-                        .font(.caption2.bold())
                         .foregroundStyle(.secondary)
+                }
+            }
+
+            // Document B's version
+            if !diff.documentBValue.isEmpty && diff.documentBValue != "Not found" {
+                HStack(alignment: .top, spacing: 8) {
+                    Text(viewModel.selectedDocumentB?.title ?? "Document B")
+                        .font(.caption.bold())
+                        .foregroundStyle(.indigo)
+                        .frame(width: 70, alignment: .leading)
                     Text(diff.documentBValue)
                         .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .padding(12)
-        .background(isCritical ? Color.red.opacity(0.08) : Color(.systemGray6))
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.blue.opacity(0.06))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
         .accessibilityElement(children: .combine)
         .accessibilityLabel(AccessibilityLabels.differenceItem(label: diff.label))
     }
