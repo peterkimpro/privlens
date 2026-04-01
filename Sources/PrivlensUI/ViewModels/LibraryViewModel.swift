@@ -35,7 +35,9 @@ public final class LibraryViewModel {
             let query = searchQuery.lowercased()
             result = result.filter {
                 $0.title.lowercased().contains(query) ||
-                $0.rawText.lowercased().contains(query)
+                $0.rawText.lowercased().contains(query) ||
+                $0.documentType.displayName.lowercased().contains(query) ||
+                ($0.analysisResult?.lowercased().contains(query) ?? false)
             }
         }
 

@@ -15,6 +15,11 @@ public struct LibraryView: View {
             Group {
                 if viewModel.documents.isEmpty && !viewModel.isLoading {
                     emptyStateView
+                } else if viewModel.filteredDocuments.isEmpty {
+                    VStack(spacing: 0) {
+                        folderChips
+                        ContentUnavailableView.search(text: viewModel.searchQuery)
+                    }
                 } else {
                     VStack(spacing: 0) {
                         folderChips
