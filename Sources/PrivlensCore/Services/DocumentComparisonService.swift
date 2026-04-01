@@ -145,7 +145,162 @@ public enum DocumentComparisonError: Error, LocalizedError, Sendable {
     }
 }
 
-// MARK: - DocumentComparisonService
+// MARK: - AI-Powered Implementation
+
+#if ENABLE_FOUNDATION_MODELS
+import FoundationModels
+
+@available(iOS 26.0, macOS 26.0, *)
+public final class DocumentComparisonService: DocumentComparisonServiceProtocol, Sendable {
+
+    public init() {}
+
+    public func compare(documentA: Document, documentB: Document) async throws -> ComparisonResult {
+        guard documentA.id != documentB.id else {
+            throw DocumentComparisonError.sameDocument
+        }
+        guard !documentA.rawText.isEmpty else {
+            throw DocumentComparisonError.emptyDocument(documentA.title)
+        }
+        guard !documentB.rawText.isEmpty else {
+            throw DocumentComparisonError.emptyDocument(documentB.title)
+        }
+
+        // Truncate texts to fit context window
+        let maxChars = 3500
+        let textA = String(documentA.rawText.prefix(maxChars))
+        let textB = String(documentB.rawText.prefix(maxChars))
+
+        let session = LanguageModelSession()
+        let prompt = buildComparisonPrompt(
+            titleA: documentA.title,
+            titleB: documentB.title,
+            textA: textA,
+            textB: textB
+        )
+
+        let response = try await session.respond(to: prompt)
+        let aiOutput = response.content
+
+        // Parse the AI response into structured result
+        return parseAIResponse(
+            aiOutput,
+            documentA: documentA,
+            documentB: documentB
+        )
+    }
+
+    private func buildComparisonPrompt(
+        titleA: String,
+        titleB: String,
+        textA: String,
+        textB: String
+    ) -> String {
+        """
+        You are a document comparison assistant. Compare these two documents and explain \
+        the meaningful differences to the user in plain, natural language.
+
+        DOCUMENT A ("\(titleA)"):
+        ---
+        \(textA)
+        ---
+
+        DOCUMENT B ("\(titleB)"):
+        ---
+        \(textB)
+        ---
+
+        Provide your comparison in this exact format (keep the labels exactly as shown):
+
+        SIMILARITY: [a number from 0 to 100 representing how similar these documents are]
+
+        SUMMARY: [A 2-4 sentence plain language summary of how these documents compare. \
+        What are they? How do they relate? What are the most important differences a person should know about?]
+
+        DIFFERENCES:
+        [For each meaningful difference, write one line in this format:]
+        DIFF|[category]|[short label]|[what document A says]|[what document B says]|[severity 0-100]
+
+        Categories must be one of: financial, legal, date, term, obligation, coverage, other
+        Severity: 0 = minor/informational, 100 = critical/needs immediate attention
+
+        Focus on differences that actually matter to the person reading these documents. \
+        Do not list trivial wording differences. Do not use markdown formatting. \
+        Write naturally as if explaining to someone.
+        """
+    }
+
+    private func parseAIResponse(
+        _ response: String,
+        documentA: Document,
+        documentB: Document
+    ) -> ComparisonResult {
+        var similarity = 0.5
+        var summary = "Comparison complete."
+        var differences: [ComparisonDifference] = []
+
+        let lines = response.components(separatedBy: .newlines)
+
+        for line in lines {
+            let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+
+            if trimmed.hasPrefix("SIMILARITY:") {
+                let value = trimmed.replacingOccurrences(of: "SIMILARITY:", with: "")
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                    .replacingOccurrences(of: "%", with: "")
+                if let num = Double(value) {
+                    similarity = min(1.0, max(0.0, num / 100.0))
+                }
+            } else if trimmed.hasPrefix("SUMMARY:") {
+                summary = trimmed.replacingOccurrences(of: "SUMMARY:", with: "")
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+            } else if trimmed.hasPrefix("DIFF|") {
+                let parts = trimmed.components(separatedBy: "|")
+                if parts.count >= 6 {
+                    let category = DifferenceCategory(rawValue: parts[1].trimmingCharacters(in: .whitespaces)) ?? .other
+                    let label = parts[2].trimmingCharacters(in: .whitespaces)
+                    let docAValue = parts[3].trimmingCharacters(in: .whitespaces)
+                    let docBValue = parts[4].trimmingCharacters(in: .whitespaces)
+                    let severityStr = parts[5].trimmingCharacters(in: .whitespacesAndNewlines)
+                        .replacingOccurrences(of: "%", with: "")
+                    let severity = Double(severityStr).map { min(1.0, max(0.0, $0 / 100.0)) } ?? 0.5
+
+                    differences.append(ComparisonDifference(
+                        category: category,
+                        label: label,
+                        documentAValue: docAValue,
+                        documentBValue: docBValue,
+                        severity: severity
+                    ))
+                }
+            }
+        }
+
+        // If AI didn't produce SUMMARY on its own line, use first meaningful paragraph
+        if summary == "Comparison complete." {
+            let paragraphs = response.components(separatedBy: "\n\n")
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty && !$0.hasPrefix("SIMILARITY") && !$0.hasPrefix("DIFF") && !$0.hasPrefix("DIFFERENCES") }
+            if let first = paragraphs.first {
+                summary = first
+            }
+        }
+
+        return ComparisonResult(
+            documentAId: documentA.id,
+            documentBId: documentB.id,
+            documentATitle: documentA.title,
+            documentBTitle: documentB.title,
+            summary: summary,
+            differences: differences,
+            similarityScore: similarity
+        )
+    }
+}
+
+#else
+
+// MARK: - Linux / non-Apple platform stub
 
 public final class DocumentComparisonService: DocumentComparisonServiceProtocol, Sendable {
 
@@ -162,251 +317,23 @@ public final class DocumentComparisonService: DocumentComparisonServiceProtocol,
             throw DocumentComparisonError.emptyDocument(documentB.title)
         }
 
-        let textA = documentA.rawText.lowercased()
-        let textB = documentB.rawText.lowercased()
-
-        // Extract structured elements from both documents
-        let amountsA = extractAmounts(from: textA)
-        let amountsB = extractAmounts(from: textB)
-        let datesA = extractDates(from: textA)
-        let datesB = extractDates(from: textB)
-
-        var differences: [ComparisonDifference] = []
-
-        // Compare financial amounts
-        differences.append(contentsOf: compareAmounts(amountsA: amountsA, amountsB: amountsB))
-
-        // Compare dates
-        differences.append(contentsOf: compareDates(datesA: datesA, datesB: datesB))
-
-        // Compare key terms
-        differences.append(contentsOf: compareKeyTerms(textA: textA, textB: textB))
-
-        // Compute text similarity using Jaccard index on word sets
-        let similarityScore = computeSimilarity(textA: textA, textB: textB)
-
-        // Build summary
-        let summary = buildSummary(
-            documentATitle: documentA.title,
-            documentBTitle: documentB.title,
-            differences: differences,
-            similarity: similarityScore
-        )
+        // Simple word-overlap similarity for non-Apple platforms
+        let wordsA = Set(documentA.rawText.lowercased().split(whereSeparator: { $0.isWhitespace || $0.isPunctuation }).map(String.init))
+        let wordsB = Set(documentB.rawText.lowercased().split(whereSeparator: { $0.isWhitespace || $0.isPunctuation }).map(String.init))
+        let union = wordsA.union(wordsB).count
+        let intersection = wordsA.intersection(wordsB).count
+        let similarity = union > 0 ? Double(intersection) / Double(union) : 0.0
 
         return ComparisonResult(
             documentAId: documentA.id,
             documentBId: documentB.id,
             documentATitle: documentA.title,
             documentBTitle: documentB.title,
-            summary: summary,
-            differences: differences,
-            similarityScore: similarityScore
+            summary: "Mock comparison: \(Int(similarity * 100))% word overlap. AI-powered comparison requires iOS 26+.",
+            differences: [],
+            similarityScore: similarity
         )
     }
-
-    // MARK: - Extraction Helpers
-
-    private func extractAmounts(from text: String) -> [(label: String, value: String)] {
-        var results: [(String, String)] = []
-        let patterns: [(String, String)] = [
-            ("\\$[\\d,]+\\.?\\d*", "amount"),
-            ("(?:rent|salary|compensation|premium|deposit|fee|payment|total|balance|deductible)\\s*(?:of|:)?\\s*\\$[\\d,]+\\.?\\d*", "labeled amount"),
-        ]
-
-        for (pattern, _) in patterns {
-            if let regex = try? NSRegularExpression(pattern: pattern, options: []) {
-                let matches = regex.matches(in: text, range: NSRange(text.startIndex..., in: text))
-                for match in matches {
-                    if let range = Range(match.range, in: text) {
-                        let matchText = String(text[range])
-                        results.append((matchText, matchText))
-                    }
-                }
-            }
-        }
-
-        return results
-    }
-
-    private func extractDates(from text: String) -> [(label: String, value: String)] {
-        var results: [(String, String)] = []
-        let datePattern = "\\d{1,2}/\\d{1,2}/\\d{2,4}|\\w+ \\d{1,2},? \\d{4}"
-
-        if let regex = try? NSRegularExpression(pattern: datePattern, options: []) {
-            let matches = regex.matches(in: text, range: NSRange(text.startIndex..., in: text))
-            for match in matches {
-                if let range = Range(match.range, in: text) {
-                    let dateStr = String(text[range])
-                    results.append(("date", dateStr))
-                }
-            }
-        }
-
-        return results
-    }
-
-    // MARK: - Comparison Helpers
-
-    private func compareAmounts(
-        amountsA: [(label: String, value: String)],
-        amountsB: [(label: String, value: String)]
-    ) -> [ComparisonDifference] {
-        var differences: [ComparisonDifference] = []
-
-        let setA = Set(amountsA.map { $0.value })
-        let setB = Set(amountsB.map { $0.value })
-
-        let onlyInA = setA.subtracting(setB)
-        let onlyInB = setB.subtracting(setA)
-
-        for amount in onlyInA {
-            differences.append(ComparisonDifference(
-                category: .financial,
-                label: "Amount in Document A only",
-                documentAValue: amount,
-                documentBValue: "Not found",
-                severity: 0.6
-            ))
-        }
-
-        for amount in onlyInB {
-            differences.append(ComparisonDifference(
-                category: .financial,
-                label: "Amount in Document B only",
-                documentAValue: "Not found",
-                documentBValue: amount,
-                severity: 0.6
-            ))
-        }
-
-        return differences
-    }
-
-    private func compareDates(
-        datesA: [(label: String, value: String)],
-        datesB: [(label: String, value: String)]
-    ) -> [ComparisonDifference] {
-        var differences: [ComparisonDifference] = []
-
-        let setA = Set(datesA.map { $0.value })
-        let setB = Set(datesB.map { $0.value })
-
-        let onlyInA = setA.subtracting(setB)
-        let onlyInB = setB.subtracting(setA)
-
-        for date in onlyInA {
-            differences.append(ComparisonDifference(
-                category: .date,
-                label: "Date in Document A only",
-                documentAValue: date,
-                documentBValue: "Not found",
-                severity: 0.5
-            ))
-        }
-
-        for date in onlyInB {
-            differences.append(ComparisonDifference(
-                category: .date,
-                label: "Date in Document B only",
-                documentAValue: "Not found",
-                documentBValue: date,
-                severity: 0.5
-            ))
-        }
-
-        return differences
-    }
-
-    private func compareKeyTerms(textA: String, textB: String) -> [ComparisonDifference] {
-        var differences: [ComparisonDifference] = []
-
-        let importantTerms = [
-            ("non-compete", DifferenceCategory.legal, 0.8),
-            ("arbitration", DifferenceCategory.legal, 0.8),
-            ("automatic renewal", DifferenceCategory.term, 0.7),
-            ("early termination", DifferenceCategory.term, 0.7),
-            ("late fee", DifferenceCategory.financial, 0.6),
-            ("penalty", DifferenceCategory.financial, 0.7),
-            ("liability", DifferenceCategory.legal, 0.6),
-            ("indemnif", DifferenceCategory.legal, 0.7),
-            ("waiver", DifferenceCategory.legal, 0.6),
-            ("confidential", DifferenceCategory.legal, 0.5),
-            ("severance", DifferenceCategory.financial, 0.7),
-            ("probation", DifferenceCategory.term, 0.5),
-            ("exclusion", DifferenceCategory.coverage, 0.7),
-            ("deductible", DifferenceCategory.financial, 0.6),
-        ]
-
-        for (term, category, severity) in importantTerms {
-            let inA = textA.contains(term)
-            let inB = textB.contains(term)
-
-            if inA && !inB {
-                differences.append(ComparisonDifference(
-                    category: category,
-                    label: "Term '\(term)' found only in Document A",
-                    documentAValue: "Present",
-                    documentBValue: "Not found",
-                    severity: severity
-                ))
-            } else if !inA && inB {
-                differences.append(ComparisonDifference(
-                    category: category,
-                    label: "Term '\(term)' found only in Document B",
-                    documentAValue: "Not found",
-                    documentBValue: "Present",
-                    severity: severity
-                ))
-            }
-        }
-
-        return differences
-    }
-
-    private func computeSimilarity(textA: String, textB: String) -> Double {
-        let wordsA = Set(textA.split(whereSeparator: { $0.isWhitespace || $0.isPunctuation }).map(String.init))
-        let wordsB = Set(textB.split(whereSeparator: { $0.isWhitespace || $0.isPunctuation }).map(String.init))
-
-        guard !wordsA.isEmpty || !wordsB.isEmpty else { return 1.0 }
-
-        let intersection = wordsA.intersection(wordsB).count
-        let union = wordsA.union(wordsB).count
-
-        guard union > 0 else { return 0.0 }
-        return Double(intersection) / Double(union)
-    }
-
-    private func buildSummary(
-        documentATitle: String,
-        documentBTitle: String,
-        differences: [ComparisonDifference],
-        similarity: Double
-    ) -> String {
-        let similarityPercent = Int(similarity * 100)
-        let criticalCount = differences.filter { $0.severity >= 0.7 }.count
-        let financialCount = differences.filter { $0.category == .financial }.count
-        let legalCount = differences.filter { $0.category == .legal }.count
-
-        var parts: [String] = []
-
-        parts.append("These documents are \(similarityPercent)% similar.")
-
-        if differences.isEmpty {
-            parts.append("No significant differences were detected.")
-        } else {
-            parts.append("Found \(differences.count) difference\(differences.count == 1 ? "" : "s").")
-
-            if criticalCount > 0 {
-                parts.append("\(criticalCount) critical difference\(criticalCount == 1 ? "" : "s") require\(criticalCount == 1 ? "s" : "") attention.")
-            }
-            if financialCount > 0 {
-                parts.append("\(financialCount) financial difference\(financialCount == 1 ? "" : "s") found.")
-            }
-            if legalCount > 0 {
-                parts.append("\(legalCount) legal difference\(legalCount == 1 ? "" : "s") found.")
-            }
-        }
-
-        return parts.joined(separator: " ")
-    }
 }
+
+#endif
