@@ -131,7 +131,10 @@ public final class ConversationService: ConversationServiceProtocol, Sendable {
         Use quotation marks around direct quotes from the document. \
         If the answer is not in the document, say so clearly.
 
-        Be concise, helpful, and use plain language.
+        IMPORTANT: Respond in plain, natural language only. Do NOT use any markdown \
+        formatting — no bold (**), no italic (*), no numbered lists (1. 2. 3.), \
+        no bullet points (- or *), no headers (#), no code blocks, and no JSON. \
+        Just write naturally as if you're talking to someone.
 
         DOCUMENT TEXT:
         ---
