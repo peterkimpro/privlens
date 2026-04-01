@@ -86,16 +86,14 @@ public final class ScanViewModel {
                 thumbnailData = resized.jpegData(compressionQuality: 0.6)
             }
 
-            // Create document with page images — derive a short title from the summary
-            let autoTitle: String
-            if docType != .unknown {
-                autoTitle = "\(docType.displayName) - \(Date().formatted(date: .abbreviated, time: .omitted))"
+            // Create document with a simple sequential title — users can rename later
+            let scanNumber: Int
+            if let store {
+                scanNumber = (try? store.count()) ?? 0
             } else {
-                let summaryWords = result.summary.split(separator: " ").prefix(6).joined(separator: " ")
-                autoTitle = summaryWords.isEmpty
-                    ? "Document - \(Date().formatted(date: .abbreviated, time: .omitted))"
-                    : summaryWords
+                scanNumber = 0
             }
+            let autoTitle = "Scan \(scanNumber + 1)"
             let document = Document(
                 title: autoTitle,
                 rawText: trimmedText,

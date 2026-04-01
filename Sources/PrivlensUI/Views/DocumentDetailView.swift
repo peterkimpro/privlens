@@ -57,6 +57,35 @@ public struct DocumentDetailView: View {
     private var analysisTab: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
+                // Chat with Document — prominent CTA
+                NavigationLink(destination: ConversationView(document: document)) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "bubble.left.and.text.bubble.right.fill")
+                            .font(.title2)
+                            .foregroundStyle(.white)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Ask About This Document")
+                                .font(.headline)
+                                .foregroundStyle(.white)
+                            Text("Chat with on-device AI to understand your document")
+                                .font(.caption)
+                                .foregroundStyle(.white.opacity(0.8))
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .foregroundStyle(.white.opacity(0.6))
+                    }
+                    .padding()
+                    .background(
+                        LinearGradient(
+                            colors: [.blue, .indigo],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                }
+
                 // Document Info
                 HStack {
                     Image(systemName: document.documentType.systemIcon)
