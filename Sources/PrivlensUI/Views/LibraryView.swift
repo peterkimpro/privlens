@@ -216,7 +216,7 @@ public struct LibraryView: View {
                     }
                 }
 
-                Text(document.dateScanned, style: .relative)
+                Text(document.dateScanned, style: .date)
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }
