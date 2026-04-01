@@ -9,16 +9,6 @@ struct ErrorRecoveryServiceTests {
 
     // MARK: - Analysis Coordinator Errors
 
-    @Test("Analysis limit reached suggests upgrade")
-    func analysisLimitReachedSuggestsUpgrade() {
-        let error = AnalysisCoordinatorError.analysisLimitReached(remaining: 0)
-        let info = service.recoveryInfo(for: error)
-
-        #expect(info.title.contains("Limit"))
-        #expect(info.actions.contains(.upgradePro))
-        #expect(info.isRetryable == false)
-    }
-
     @Test("Empty document text suggests rescan")
     func emptyDocumentSuggestsRescan() {
         let error = AnalysisCoordinatorError.emptyDocumentText

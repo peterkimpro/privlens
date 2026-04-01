@@ -5,7 +5,6 @@ import Foundation
 public enum BatchAnalysisError: Error, LocalizedError, Sendable {
     case emptyBatch
     case allDocumentsFailed
-    case paywallLimitReached(analyzedCount: Int, totalCount: Int)
 
     public var errorDescription: String? {
         switch self {
@@ -13,8 +12,6 @@ public enum BatchAnalysisError: Error, LocalizedError, Sendable {
             return "No documents were provided for batch analysis."
         case .allDocumentsFailed:
             return "All documents in the batch failed to analyze."
-        case .paywallLimitReached(let analyzed, let total):
-            return "Paywall limit reached after analyzing \(analyzed) of \(total) documents. Upgrade to Pro for unlimited analyses."
         }
     }
 }
@@ -53,14 +50,12 @@ public protocol BatchAnalysisServiceProtocol: Sendable {
 public final class BatchAnalysisService: BatchAnalysisServiceProtocol, Sendable {
 
     private let analysisCoordinator: AnalysisCoordinatorProtocol
-    private let paywallService: PaywallServiceProtocol
 
     public init(
         analysisCoordinator: AnalysisCoordinatorProtocol,
-        paywallService: PaywallServiceProtocol
+        paywallService: PaywallServiceProtocol? = nil
     ) {
         self.analysisCoordinator = analysisCoordinator
-        self.paywallService = paywallService
     }
 
     public func analyzeBatch(
@@ -78,19 +73,6 @@ public final class BatchAnalysisService: BatchAnalysisServiceProtocol, Sendable 
         let documentMap = Dictionary(uniqueKeysWithValues: documents.map { ($0.id, $0) })
 
         for (index, entry) in updatedJob.entries.enumerated() {
-            // Check paywall before each document
-            let canAnalyze = await paywallService.canPerformAnalysis()
-            guard canAnalyze else {
-                // Mark remaining entries as skipped
-                for remainingIndex in index..<updatedJob.entries.count {
-                    if updatedJob.entries[remainingIndex].status == .pending {
-                        updatedJob.entries[remainingIndex].status = .skippedPaywall
-                        updatedJob.entries[remainingIndex].errorMessage = "Analysis limit reached"
-                    }
-                }
-                break
-            }
-
             // Report progress
             let progress = BatchProgress(
                 currentIndex: index,

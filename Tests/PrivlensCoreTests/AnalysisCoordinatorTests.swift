@@ -4,7 +4,6 @@ import Testing
 
 // MARK: - Mock Services
 
-/// Mock AI analysis service that returns predetermined results.
 private final class MockAIAnalysisService: AIAnalysisServiceProtocol, Sendable {
     private let mockSummary: String
     private let mockInsights: [Insight]
@@ -50,7 +49,6 @@ private final class MockAIAnalysisService: AIAnalysisServiceProtocol, Sendable {
     }
 }
 
-/// Mock AI analysis service that always throws.
 private final class FailingAIAnalysisService: AIAnalysisServiceProtocol, Sendable {
     func analyzeChunk(_ chunk: TextChunk, documentType: String?) async throws -> [Insight] {
         throw AnalysisCoordinatorError.analysisServiceFailed("mock failure")
@@ -65,7 +63,6 @@ private final class FailingAIAnalysisService: AIAnalysisServiceProtocol, Sendabl
     }
 }
 
-/// Mock storage service that stores results in memory.
 private final class MockStorageService: StorageServiceProtocol, @unchecked Sendable {
     private let lock = NSLock()
     private var storage: [UUID: AnalysisResult] = [:]
@@ -111,50 +108,12 @@ private final class MockStorageService: StorageServiceProtocol, @unchecked Senda
     }
 }
 
-/// Mock paywall service with configurable behavior.
-private final class MockPaywallService: PaywallServiceProtocol, @unchecked Sendable {
-    let currentTier: SubscriptionTier
-    private let lock = NSLock()
-    private var usageCount: Int
-    private let limit: Int
+private final class MockPaywallService: PaywallServiceProtocol, Sendable {
+    let currentTier: SubscriptionTier = .pro
 
-    init(tier: SubscriptionTier = .free, usageCount: Int = 0, limit: Int = 3) {
-        self.currentTier = tier
-        self.usageCount = usageCount
-        self.limit = limit
-    }
-
-    private func canPerformSync() -> Bool {
-        if currentTier == .pro { return true }
-        lock.lock()
-        defer { lock.unlock() }
-        return usageCount < limit
-    }
-
-    private func recordSync() {
-        lock.lock()
-        defer { lock.unlock() }
-        usageCount += 1
-    }
-
-    private func remainingSync() -> Int {
-        if currentTier == .pro { return Int.max }
-        lock.lock()
-        defer { lock.unlock() }
-        return max(0, limit - usageCount)
-    }
-
-    func canPerformAnalysis() async -> Bool {
-        canPerformSync()
-    }
-
-    func recordAnalysis() async {
-        recordSync()
-    }
-
-    func remainingFreeAnalyses() async -> Int {
-        remainingSync()
-    }
+    func canPerformAnalysis() async -> Bool { true }
+    func recordAnalysis() async {}
+    func remainingFreeAnalyses() async -> Int { Int.max }
 }
 
 // MARK: - Tests
@@ -175,15 +134,14 @@ struct AnalysisCoordinatorTests {
         )
     }
 
-    @Test("Successful analysis saves result and records usage")
+    @Test("Successful analysis saves result")
     func successfulAnalysis() async throws {
         let storageService = MockStorageService()
-        let paywallService = MockPaywallService(tier: .free, usageCount: 0)
         let coordinator = AnalysisCoordinator(
             chunkingService: ChunkingService(),
             aiAnalysisService: MockAIAnalysisService(),
             storageService: storageService,
-            paywallService: paywallService
+            paywallService: MockPaywallService()
         )
 
         let document = makeDocument()
@@ -191,58 +149,10 @@ struct AnalysisCoordinatorTests {
 
         #expect(result.summary == "Test summary")
         #expect(!result.keyInsights.isEmpty)
-        #expect(result.keyInsights.first?.contains("Insight 1") == true)
 
-        // Verify result was saved
         let savedResult = try await storageService.loadAnalysisResult(for: document.id)
         #expect(savedResult != nil)
         #expect(savedResult?.summary == "Test summary")
-
-        // Verify usage was recorded
-        let remaining = await paywallService.remainingFreeAnalyses()
-        #expect(remaining == 2)
-    }
-
-    @Test("Analysis blocked when free limit reached")
-    func paywallBlocksAnalysis() async {
-        let paywallService = MockPaywallService(tier: .free, usageCount: 3, limit: 3)
-        let coordinator = AnalysisCoordinator(
-            chunkingService: ChunkingService(),
-            aiAnalysisService: MockAIAnalysisService(),
-            storageService: MockStorageService(),
-            paywallService: paywallService
-        )
-
-        let document = makeDocument()
-
-        do {
-            _ = try await coordinator.analyzeDocument(document)
-            Issue.record("Expected analysis to throw when limit is reached")
-        } catch let error as AnalysisCoordinatorError {
-            if case .analysisLimitReached(let remaining) = error {
-                #expect(remaining == 0)
-            } else {
-                Issue.record("Expected analysisLimitReached error, got \(error)")
-            }
-        } catch {
-            Issue.record("Unexpected error type: \(error)")
-        }
-    }
-
-    @Test("Pro tier allows unlimited analysis")
-    func proTierUnlimited() async throws {
-        let paywallService = MockPaywallService(tier: .pro, usageCount: 100)
-        let coordinator = AnalysisCoordinator(
-            chunkingService: ChunkingService(),
-            aiAnalysisService: MockAIAnalysisService(),
-            storageService: MockStorageService(),
-            paywallService: paywallService
-        )
-
-        let document = makeDocument()
-        let result = try await coordinator.analyzeDocument(document)
-
-        #expect(result.summary == "Test summary")
     }
 
     @Test("Empty document text throws error")
@@ -288,10 +198,10 @@ struct AnalysisCoordinatorTests {
         _ = try await coordinator.analyzeDocument(document)
 
         let stages = progressStages.values
-        #expect(stages.count >= 4)
-        // First stage should be checkingPaywall
-        if case .checkingPaywall = stages[0] {} else {
-            Issue.record("First stage should be checkingPaywall")
+        #expect(stages.count >= 3)
+        // First stage should be chunkingText
+        if case .chunkingText = stages[0] {} else {
+            Issue.record("First stage should be chunkingText")
         }
         // Last stage should be complete
         if case .complete = stages[stages.count - 1] {} else {
@@ -314,14 +224,13 @@ struct AnalysisCoordinatorTests {
             _ = try await coordinator.analyzeDocument(document)
             Issue.record("Expected analysis to throw")
         } catch {
-            // Expected — analysis service failed
+            // Expected
         }
     }
 }
 
 // MARK: - Thread-Safe Helper
 
-/// A thread-safe array for collecting values across async contexts.
 private final class LockedArray<Element: Sendable>: @unchecked Sendable {
     private let lock = NSLock()
     private var _values: [Element] = []

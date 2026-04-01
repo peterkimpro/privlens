@@ -7,7 +7,6 @@ public enum RecoveryAction: String, Sendable, CaseIterable {
     case retry
     case rescan
     case reducePages
-    case upgradePro
     case checkStorage
     case contactSupport
     case none
@@ -18,7 +17,6 @@ public enum RecoveryAction: String, Sendable, CaseIterable {
         case .retry: return "Try Again"
         case .rescan: return "Rescan Document"
         case .reducePages: return "Try with Fewer Pages"
-        case .upgradePro: return "Upgrade to Pro"
         case .checkStorage: return "Free Up Storage"
         case .contactSupport: return "Contact Support"
         case .none: return ""
@@ -31,7 +29,6 @@ public enum RecoveryAction: String, Sendable, CaseIterable {
         case .retry: return "arrow.clockwise"
         case .rescan: return "doc.viewfinder"
         case .reducePages: return "doc.on.doc"
-        case .upgradePro: return "star.fill"
         case .checkStorage: return "internaldrive"
         case .contactSupport: return "envelope.fill"
         case .none: return ""
@@ -134,13 +131,6 @@ public final class ErrorRecoveryService: ErrorRecoveryServiceProtocol, Sendable 
 
     private func handleCoordinatorError(_ error: AnalysisCoordinatorError) -> ErrorRecoveryInfo {
         switch error {
-        case .analysisLimitReached:
-            return ErrorRecoveryInfo(
-                title: "Analysis Limit Reached",
-                message: "You've used all your free analyses this month. Upgrade to Pro for unlimited document analysis.",
-                actions: [.upgradePro],
-                isRetryable: false
-            )
         case .emptyDocumentText:
             return ErrorRecoveryInfo(
                 title: "No Text Found",

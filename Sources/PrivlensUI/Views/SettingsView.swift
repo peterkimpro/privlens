@@ -6,9 +6,8 @@ import StoreKit
 #endif
 
 public struct SettingsView: View {
-    @State private var showPaywall = false
-    @State private var paywallManager = PaywallManager()
     @State private var readinessReport: ReadinessReport?
+    @State private var tipThankYou = false
 
     private let readinessChecker = AppReadinessChecker()
 
@@ -17,11 +16,15 @@ public struct SettingsView: View {
     public var body: some View {
         NavigationStack {
             List {
-                // Pro Status
+                // Tip Jar
                 Section {
-                    proStatusRow
+                    tipJarRow(label: "Small Tip", emoji: "☕", price: "$1.99")
+                    tipJarRow(label: "Nice Tip", emoji: "🍕", price: "$4.99")
+                    tipJarRow(label: "Generous Tip", emoji: "🎉", price: "$9.99")
                 } header: {
-                    Text("Subscription")
+                    Text("Support Privlens")
+                } footer: {
+                    Text("Privlens is free with no limits. Tips help support development and keep the app ad-free.")
                 }
 
                 // Privacy
@@ -103,98 +106,35 @@ public struct SettingsView: View {
             .onAppear {
                 readinessReport = readinessChecker.checkReadiness()
             }
-            #if canImport(StoreKit)
-            .sheet(isPresented: $showPaywall) {
-                PaywallView()
+            .alert("Thank You!", isPresented: $tipThankYou) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("Your support means a lot and helps keep Privlens free and ad-free.")
             }
-            #endif
         }
     }
 
-    private var proStatusRow: some View {
+    private func tipJarRow(label: String, emoji: String, price: String) -> some View {
         Button {
-            if !paywallManager.hasPurchase {
-                showPaywall = true
-            }
+            // StoreKit purchase would go here with real product IDs
+            tipThankYou = true
         } label: {
             HStack {
-                Image(systemName: proStatusIcon)
-                    .foregroundStyle(proStatusIconColor)
-                    .accessibilityHidden(true)
+                Text(emoji)
+                    .font(.title2)
                 VStack(alignment: .leading) {
-                    Text(proStatusTitle)
-                        .font(.headline)
-                    Text(proStatusSubtitle)
+                    Text(label)
+                        .font(.subheadline.bold())
+                    Text(price)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
-                if !paywallManager.hasPurchase {
-                    Image(systemName: "chevron.right")
-                        .foregroundStyle(.secondary)
-                        .accessibilityHidden(true)
-                }
+                Image(systemName: "heart.fill")
+                    .foregroundStyle(.pink)
             }
         }
         .tint(.primary)
-        .accessibilityIdentifier(AccessibilityIdentifiers.settingsProStatus)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(proAccessibilityLabel)
-        .accessibilityHint(paywallManager.hasPurchase ? "" : "Double tap to view upgrade options")
-    }
-
-    private var proStatusIcon: String {
-        if paywallManager.hasPurchase {
-            return "checkmark.seal.fill"
-        } else if paywallManager.isInTrial {
-            return "clock.fill"
-        } else {
-            return "sparkles"
-        }
-    }
-
-    private var proStatusIconColor: Color {
-        if paywallManager.hasPurchase {
-            return .green
-        } else if paywallManager.isInTrial {
-            return .orange
-        } else {
-            return .accentColor
-        }
-    }
-
-    private var proStatusTitle: String {
-        if paywallManager.isProPlus {
-            return "Pro+"
-        } else if paywallManager.hasPurchase {
-            return "Pro"
-        } else if paywallManager.isInTrial {
-            return "Pro Trial — \(paywallManager.trialDaysRemaining) days remaining"
-        } else {
-            return "Free — \(paywallManager.freeAnalysesUsed)/\(PaywallManager.freeAnalysesPerMonth) analyses used"
-        }
-    }
-
-    private var proStatusSubtitle: String {
-        if paywallManager.isProPlus {
-            return "Unlimited analyses + document comparison"
-        } else if paywallManager.hasPurchase {
-            return "Unlimited analyses enabled"
-        } else if paywallManager.isInTrial {
-            return "Enjoy full Pro features during your trial"
-        } else {
-            return "Upgrade for unlimited analyses"
-        }
-    }
-
-    private var proAccessibilityLabel: String {
-        if paywallManager.hasPurchase {
-            return "Pro subscription active. Unlimited analyses enabled."
-        } else if paywallManager.isInTrial {
-            return AccessibilityLabels.trialStatus(daysRemaining: paywallManager.trialDaysRemaining)
-        } else {
-            return AccessibilityLabels.freeAnalysesRemaining(paywallManager.remainingFreeAnalyses)
-        }
     }
 }
 

@@ -8,7 +8,7 @@ public enum BatchDocumentStatus: String, Codable, Sendable {
     case analyzing
     case completed
     case failed
-    case skippedPaywall
+    case skipped
 }
 
 // MARK: - BatchDocumentEntry
@@ -122,7 +122,7 @@ public struct BatchJob: Codable, Sendable, Identifiable {
 
     /// Number of documents that have been completed or failed.
     public var processedCount: Int {
-        entries.filter { $0.status == .completed || $0.status == .failed || $0.status == .skippedPaywall }.count
+        entries.filter { $0.status == .completed || $0.status == .failed || $0.status == .skipped }.count
     }
 
     /// Overall progress as a fraction 0.0 to 1.0.

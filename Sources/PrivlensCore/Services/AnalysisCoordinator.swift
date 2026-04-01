@@ -4,7 +4,6 @@ import Foundation
 
 /// Represents stages of the analysis pipeline.
 public enum AnalysisProgress: Sendable {
-    case checkingPaywall
     case chunkingText
     case analyzingChunks(current: Int, total: Int)
     case savingResults
@@ -14,14 +13,11 @@ public enum AnalysisProgress: Sendable {
 // MARK: - AnalysisCoordinatorError
 
 public enum AnalysisCoordinatorError: Error, LocalizedError, Sendable {
-    case analysisLimitReached(remaining: Int)
     case emptyDocumentText
     case analysisServiceFailed(String)
 
     public var errorDescription: String? {
         switch self {
-        case .analysisLimitReached(let remaining):
-            return "Analysis limit reached. Remaining this month: \(remaining). Upgrade to Pro for unlimited analyses."
         case .emptyDocumentText:
             return "The document has no text to analyze."
         case .analysisServiceFailed(let reason):
@@ -69,16 +65,7 @@ public final class AnalysisCoordinator: AnalysisCoordinatorProtocol, Sendable {
     }
 
     public func analyzeDocument(_ document: Document) async throws -> AnalysisResult {
-        // Step 1: Check paywall
-        onProgress?(.checkingPaywall)
-
-        let canAnalyze = await paywallService.canPerformAnalysis()
-        guard canAnalyze else {
-            let remaining = await paywallService.remainingFreeAnalyses()
-            throw AnalysisCoordinatorError.analysisLimitReached(remaining: remaining)
-        }
-
-        // Step 2: Validate document text
+        // Step 1: Validate document text
         guard !document.rawText.isEmpty else {
             throw AnalysisCoordinatorError.emptyDocumentText
         }
@@ -136,9 +123,6 @@ public final class AnalysisCoordinator: AnalysisCoordinatorProtocol, Sendable {
         // Step 6: Save results
         onProgress?(.savingResults)
         try await storageService.saveAnalysisResult(mergedResult, for: document.id)
-
-        // Step 7: Record analysis usage
-        await paywallService.recordAnalysis()
 
         onProgress?(.complete)
 

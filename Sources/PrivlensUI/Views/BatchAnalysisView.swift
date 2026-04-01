@@ -107,8 +107,8 @@ public struct BatchAnalysisView: View {
             case .failed:
                 Image(systemName: "xmark.circle.fill")
                     .foregroundStyle(.red)
-            case .skippedPaywall:
-                Image(systemName: "lock.fill")
+            case .skipped:
+                Image(systemName: "minus.circle.fill")
                     .foregroundStyle(.orange)
             }
         }

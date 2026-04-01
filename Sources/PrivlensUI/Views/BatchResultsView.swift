@@ -56,7 +56,7 @@ public struct BatchResultsView: View {
                 statusCounter(count: batchJob.successCount, label: "Completed", color: .green)
                 statusCounter(count: batchJob.failedCount, label: "Failed", color: .red)
                 statusCounter(
-                    count: batchJob.entries.filter { $0.status == .skippedPaywall }.count,
+                    count: batchJob.entries.filter { $0.status == .skipped }.count,
                     label: "Skipped",
                     color: .orange
                 )
@@ -191,7 +191,7 @@ public struct BatchResultsView: View {
             case .failed:
                 Image(systemName: "xmark.circle.fill")
                     .foregroundStyle(.red)
-            case .skippedPaywall:
+            case .skipped:
                 Image(systemName: "lock.fill")
                     .foregroundStyle(.orange)
             }
