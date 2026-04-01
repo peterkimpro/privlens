@@ -5,16 +5,14 @@ from PIL import Image, ImageDraw, ImageFont
 import math
 
 SIZE = 1024
-img = Image.new("RGBA", (SIZE, SIZE), (0, 0, 0, 0))
+img = Image.new("RGB", (SIZE, SIZE), (0, 0, 0))
 draw = ImageDraw.Draw(img)
 
-# --- Background: rounded rectangle with gradient ---
+# --- Background: full-bleed gradient (iOS applies its own rounded mask) ---
 def lerp_color(c1, c2, t):
     return tuple(int(c1[i] + (c2[i] - c1[i]) * t) for i in range(len(c1)))
 
-# iOS-style rounded rect (radius ~220 for 1024)
-radius = 220
-# Draw gradient background
+# Draw gradient background - fill entire square
 top_color = (40, 100, 220)     # bright blue
 bottom_color = (90, 50, 180)   # indigo/purple
 
@@ -22,12 +20,6 @@ for y in range(SIZE):
     t = y / SIZE
     color = lerp_color(top_color, bottom_color, t)
     draw.line([(0, y), (SIZE, y)], fill=color)
-
-# Mask to rounded rectangle
-mask = Image.new("L", (SIZE, SIZE), 0)
-mask_draw = ImageDraw.Draw(mask)
-mask_draw.rounded_rectangle([0, 0, SIZE, SIZE], radius=radius, fill=255)
-img.putalpha(mask)
 
 # --- Shield shape (centered, white, semi-transparent) ---
 cx, cy = SIZE // 2, SIZE // 2 + 20
@@ -75,13 +67,15 @@ def draw_shield(draw, cx, cy, w, h, fill, outline=None, outline_width=0):
             p2 = points[(i + 1) % len(points)]
             draw.line([p1, p2], fill=outline, width=outline_width)
 
+# Convert base to RGBA for compositing overlays
+img = img.convert("RGBA")
+
 # Draw shield - white with some transparency
 shield_overlay = Image.new("RGBA", (SIZE, SIZE), (0, 0, 0, 0))
 shield_draw = ImageDraw.Draw(shield_overlay)
 draw_shield(shield_draw, cx, cy, shield_w, shield_h, fill=(255, 255, 255, 60))
 draw_shield(shield_draw, cx, cy, shield_w, shield_h, fill=None, outline=(255, 255, 255, 180), outline_width=6)
 img = Image.alpha_composite(img, shield_overlay)
-draw = ImageDraw.Draw(img)
 
 # --- Document icon inside shield ---
 doc_overlay = Image.new("RGBA", (SIZE, SIZE), (0, 0, 0, 0))
@@ -149,7 +143,6 @@ lens_draw.line([(hx1, hy1), (hx2, hy2)], fill=(255, 255, 255, 240), width=12)
 
 # Small checkmark/spark inside lens to hint "AI insight"
 spark_cx, spark_cy = lens_cx - 10, lens_cy - 5
-# Simple checkmark
 check_points = [
     (spark_cx - 20, spark_cy),
     (spark_cx - 5, spark_cy + 18),
@@ -163,13 +156,11 @@ img = Image.alpha_composite(img, lens_overlay)
 text_overlay = Image.new("RGBA", (SIZE, SIZE), (0, 0, 0, 0))
 text_draw = ImageDraw.Draw(text_overlay)
 
-# Try to use a bold font
 try:
     font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 52)
 except:
     font = ImageFont.load_default()
 
-# Draw subtle text at bottom
 text = "PRIVLENS"
 bbox = text_draw.textbbox((0, 0), text, font=font)
 tw = bbox[2] - bbox[0]
@@ -179,15 +170,12 @@ text_draw.text((text_x, text_y), text, fill=(255, 255, 255, 200), font=font)
 
 img = Image.alpha_composite(img, text_overlay)
 
-# --- Save ---
+# --- Save as opaque RGB PNG (no alpha — required by iOS) ---
 output_path = "/home/petekim/command-center/repos/privlens/App/Privlens/Assets.xcassets/AppIcon.appiconset/AppIcon.png"
-# Flatten to RGB (iOS icons don't use alpha)
-final = Image.new("RGB", (SIZE, SIZE), (0, 0, 0))
-final.paste(img, mask=img.split()[3])
+final = img.convert("RGB")
 final.save(output_path, "PNG")
 print(f"Icon saved to {output_path}")
 
-# Also save a copy at repo root for easy preview
 preview_path = "/home/petekim/command-center/repos/privlens/AppIcon.png"
 final.save(preview_path, "PNG")
 print(f"Preview copy saved to {preview_path}")
