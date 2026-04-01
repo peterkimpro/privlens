@@ -70,9 +70,21 @@ public final class ScanViewModel {
                 docType = keywordClassifier.classify(text: trimmedText)
             }
 
-            // Analyze with AI
+            // Analyze with AI — gracefully handle safety filter rejections
             processingStatus = "Analyzing with on-device AI..."
-            let result = try await aiService.analyzeDocument(text: trimmedText, type: docType)
+            var result: AnalysisResult?
+            do {
+                result = try await aiService.analyzeDocument(text: trimmedText, type: docType)
+            } catch {
+                // Apple Foundation Models may reject content via safety filters.
+                // Save the document anyway so the user still has their scan.
+                let desc = error.localizedDescription.lowercased()
+                if desc.contains("unsafe") || desc.contains("safety") || desc.contains("not safe") {
+                    errorMessage = "On-device AI skipped analysis for this document. You can still view the scanned text and try asking questions in the chat."
+                } else {
+                    errorMessage = "AI analysis failed: \(error.localizedDescription). Document saved without analysis."
+                }
+            }
 
             // Generate thumbnail from first page
             var thumbnailData: Data?
@@ -98,9 +110,9 @@ public final class ScanViewModel {
                 title: autoTitle,
                 rawText: trimmedText,
                 documentType: docType,
-                analysisResult: result.summary,
-                redFlags: result.redFlags,
-                keyInsights: result.keyInsights,
+                analysisResult: result?.summary,
+                redFlags: result?.redFlags ?? [],
+                keyInsights: result?.keyInsights ?? [],
                 thumbnailData: thumbnailData,
                 pageImageData: pageData,
                 pageCount: images.count
