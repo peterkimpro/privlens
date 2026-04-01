@@ -84,17 +84,17 @@ public struct SettingsView: View {
                     }
                     .padding(.vertical, 4)
 
-                    Link(destination: URL(string: "https://privlens.app/support")!) {
+                    Link(destination: URL(string: "https://peterkimpro.github.io/privlens/policies/support.html")!) {
                         Label("Help & Support", systemImage: "questionmark.circle")
                     }
                     .accessibilityLabel("Help and Support. Opens in browser.")
 
-                    Link(destination: URL(string: "https://privlens.app/privacy")!) {
+                    Link(destination: URL(string: "https://peterkimpro.github.io/privlens/policies/privacy.html")!) {
                         Label("Privacy Policy", systemImage: "hand.raised.fill")
                     }
                     .accessibilityLabel("Privacy Policy. Opens in browser.")
 
-                    Link(destination: URL(string: "https://privlens.app/terms")!) {
+                    Link(destination: URL(string: "https://peterkimpro.github.io/privlens/policies/terms.html")!) {
                         Label("Terms of Use", systemImage: "doc.text")
                     }
                     .accessibilityLabel("Terms of Use. Opens in browser.")
