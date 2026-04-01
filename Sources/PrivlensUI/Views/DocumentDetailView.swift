@@ -8,6 +8,7 @@ import PrivlensCore
 public struct DocumentDetailView: View {
     let document: Document
     @State private var selectedTab: DetailTab = .analysis
+    @State private var copiedToast = false
 
     private enum DetailTab: String, CaseIterable {
         case analysis = "Analysis"
@@ -195,13 +196,47 @@ public struct DocumentDetailView: View {
     // MARK: - Raw Text Tab
 
     private var rawTextTab: some View {
-        ScrollView {
-            Text(document.rawText)
+        VStack(spacing: 0) {
+            HStack {
+                Spacer()
+                Button {
+                    UIPasteboard.general.string = document.rawText
+                    copiedToast = true
+                } label: {
+                    Label("Copy All", systemImage: "doc.on.doc")
+                        .font(.subheadline)
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 8)
+            }
+
+            TextEditor(text: .constant(document.rawText))
                 .font(.system(.body, design: .monospaced))
-                .padding()
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .textSelection(.enabled)
+                .scrollContentBackground(.hidden)
+                .padding(.horizontal)
         }
+        .overlay {
+            if copiedToast {
+                VStack {
+                    Spacer()
+                    Text("Copied to clipboard")
+                        .font(.subheadline.bold())
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(.black.opacity(0.75))
+                        .clipShape(Capsule())
+                        .padding(.bottom, 32)
+                }
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .onAppear {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                        withAnimation { copiedToast = false }
+                    }
+                }
+            }
+        }
+        .animation(.easeInOut, value: copiedToast)
     }
 }
 #endif
