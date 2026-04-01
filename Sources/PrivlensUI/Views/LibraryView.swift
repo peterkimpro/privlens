@@ -210,9 +210,9 @@ public struct LibraryView: View {
                     }
 
                     if !document.redFlags.isEmpty {
-                        Label("\(document.redFlags.count)", systemImage: "exclamationmark.triangle.fill")
+                        Label("\(document.redFlags.count)", systemImage: "eye.fill")
                             .font(.caption)
-                            .foregroundStyle(.red)
+                            .foregroundStyle(.blue)
                     }
                 }
 
