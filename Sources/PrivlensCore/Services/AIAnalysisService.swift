@@ -105,13 +105,40 @@ public final class AIAnalysisService: AIAnalysisServiceProtocol, Sendable {
 
     // MARK: - Legacy single-pass analysis
 
-    /// Analyzes document text in a single pass using Apple Foundation Models.
-    /// Retained for backward compatibility with existing callers.
+    /// Analyzes document text using Apple Foundation Models.
+    /// Retries with safer prompt framing if the safety filter rejects the first attempt,
+    /// then falls back to chunk-based analysis with smaller text segments.
     public func analyzeDocument(text: String, type: DocumentType) async throws -> AnalysisResult {
-        let session = LanguageModelSession()
-        let prompt = buildLegacyPrompt(for: type, text: text)
-        let response = try await session.respond(to: prompt, generating: GenerableAnalysisResult.self)
-        return response.content.toAnalysisResult()
+        // Attempt 1: single-pass with standard prompt
+        do {
+            let session = LanguageModelSession()
+            let prompt = buildLegacyPrompt(for: type, text: text)
+            let response = try await session.respond(to: prompt, generating: GenerableAnalysisResult.self)
+            return response.content.toAnalysisResult()
+        } catch let error where Self.isSafetyFilterError(error) {
+            // Attempt 2: reframed prompt that emphasizes the legitimate document review context
+            do {
+                let session = LanguageModelSession()
+                let prompt = buildSafetyRetryPrompt(for: type, text: text)
+                let response = try await session.respond(to: prompt, generating: GenerableAnalysisResult.self)
+                return response.content.toAnalysisResult()
+            } catch let retryError where Self.isSafetyFilterError(retryError) {
+                // Attempt 3: chunk-based analysis with smaller text segments
+                let chunkingService = ChunkingService()
+                let config = ChunkingConfiguration(maxChunkSize: 500, overlapSize: 50)
+                let chunks = chunkingService.chunkText(text, configuration: config)
+                guard !chunks.isEmpty else { throw AIAnalysisError.noChunksProvided }
+                return try await analyzeDocument(chunks: chunks, documentType: type.rawValue)
+            }
+        }
+    }
+
+    /// Checks if an error is from Apple's safety content filter.
+    private static func isSafetyFilterError(_ error: Error) -> Bool {
+        let desc = String(describing: error).lowercased()
+        return desc.contains("unsafe") || desc.contains("safety")
+            || desc.contains("not safe") || desc.contains("guardrail")
+            || desc.contains("content filter") || desc.contains("responseSafety")
     }
 
     // MARK: - Private Helpers
@@ -180,6 +207,29 @@ public final class AIAnalysisService: AIAnalysisServiceProtocol, Sendable {
         - Classify the document type based on its content
 
         DOCUMENT TEXT:
+        ---
+        \(text)
+        ---
+        """
+    }
+
+    private func buildSafetyRetryPrompt(for type: DocumentType, text: String) -> String {
+        // Reframed prompt that clearly establishes the legitimate personal document review context,
+        // reducing false positives from Apple's safety filter.
+        return """
+        You are a helpful personal document assistant. The user has scanned one of their own \
+        personal documents and needs help understanding it. This is a routine document review \
+        for consumer protection purposes.
+
+        Please review the user's scanned document and provide:
+        - A brief 2-3 sentence summary of what this document is about
+        - Key information the user should know (dates, amounts, terms)
+        - Any items that need the user's attention or action
+
+        The scanned text from the user's document is below. Note that OCR may have introduced \
+        errors or picked up background text — focus on the main content.
+
+        USER'S SCANNED DOCUMENT:
         ---
         \(text)
         ---
