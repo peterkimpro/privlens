@@ -9,6 +9,8 @@ public struct DocumentDetailView: View {
     let document: Document
     @State private var selectedTab: DetailTab = .analysis
     @State private var copiedToast = false
+    @State private var isEditingTitle = false
+    @State private var editedTitle = ""
 
     private enum DetailTab: String, CaseIterable {
         case analysis = "Analysis"
@@ -45,11 +47,34 @@ public struct DocumentDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                NavigationLink(destination: ConversationView(document: document)) {
-                    Image(systemName: "bubble.left.and.bubble.right")
+                HStack(spacing: 16) {
+                    Button {
+                        editedTitle = document.title
+                        isEditingTitle = true
+                    } label: {
+                        Image(systemName: "pencil")
+                    }
+                    .accessibilityLabel("Rename document")
+
+                    NavigationLink(destination: ConversationView(document: document)) {
+                        Image(systemName: "bubble.left.and.bubble.right")
+                    }
+                    .accessibilityLabel("Ask questions about this document")
                 }
-                .accessibilityLabel("Ask questions about this document")
             }
+        }
+        .alert("Rename Document", isPresented: $isEditingTitle) {
+            TextField("Document name", text: $editedTitle)
+            Button("Cancel", role: .cancel) {}
+            Button("Save") {
+                let trimmed = editedTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !trimmed.isEmpty {
+                    document.title = trimmed
+                    try? DocumentStore.shared.update(document)
+                }
+            }
+        } message: {
+            Text("Enter a new name for this document.")
         }
     }
 
@@ -91,7 +116,7 @@ public struct DocumentDetailView: View {
                 HStack {
                     Image(systemName: document.documentType.systemIcon)
                         .foregroundStyle(.tint)
-                    Text(document.documentType.displayName)
+                    Text(document.documentType == .unknown ? "Document" : document.documentType.displayName)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                     Spacer()

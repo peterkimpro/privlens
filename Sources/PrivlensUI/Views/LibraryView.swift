@@ -199,7 +199,7 @@ public struct LibraryView: View {
                     .lineLimit(1)
 
                 HStack {
-                    Text(document.documentType.displayName)
+                    Text(document.documentType == .unknown ? "Document" : document.documentType.displayName)
                         .font(.caption)
                         .foregroundStyle(.secondary)
 
