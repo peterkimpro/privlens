@@ -209,10 +209,7 @@ public final class DocumentComparisonService: DocumentComparisonServiceProtocol,
         textB: String
     ) -> String {
         """
-        You are a document analysis assistant. The user wants to compare two documents.
-
-        IMPORTANT: First determine if these are the same type of document or completely \
-        different types. Your analysis must reflect this honestly.
+        Compare these two documents for the user.
 
         DOCUMENT A ("\(titleA)"):
         ---
@@ -224,28 +221,35 @@ public final class DocumentComparisonService: DocumentComparisonServiceProtocol,
         \(textB)
         ---
 
-        Respond using this exact format. Write real content, never placeholders or brackets.
+        Here is an example of the output format for two DIFFERENT types of documents:
 
-        TYPE_A: [what kind of document A is, e.g. window replacement quote]
-        TYPE_B: [what kind of document B is, e.g. HOA agreement]
-        RELATED: [yes or no — are these the same kind of document?]
-        SIMILARITY: [0-100 number]
+        TYPE_A: window replacement quote
+        TYPE_B: HOA agreement
+        RELATED: no
+        SIMILARITY: 10
+        SUMMARY: These are two completely different documents. "\(titleA)" is a window replacement quote with pricing and installation details, while "\(titleB)" is an HOA agreement covering community rules and fees. They serve different purposes and cannot be directly compared.
+        ABOUT_A|The quoted price for window replacement is $5,000 for 10 windows
+        ABOUT_A|Installation is estimated at 2-3 weeks
+        ABOUT_B|Monthly HOA dues are $250
+        ABOUT_B|There is a pet policy limiting pets to 2 per household
 
-        SUMMARY: [If the documents are different types, say so clearly. Explain what each \
-        document is and note they serve different purposes. If they are the same type, \
-        explain how they compare. Be honest and specific. 2-4 sentences.]
+        Here is an example for two SIMILAR documents:
 
-        For each document, list the key things a person should know. Use this format:
-        ABOUT_A|[one important thing about document A]
-        ABOUT_A|[another important thing about document A]
-        ABOUT_B|[one important thing about document B]
-        ABOUT_B|[another important thing about document B]
+        TYPE_A: window replacement quote
+        TYPE_B: window replacement quote
+        RELATED: yes
+        SIMILARITY: 70
+        SUMMARY: Both documents are window replacement quotes from different companies. "\(titleA)" quotes $5,000 for 10 windows without warranty, while "\(titleB)" quotes $6,500 for the same work but includes a 10-year warranty.
+        ABOUT_A|Total price is $5,000 for 10 windows
+        ABOUT_A|No warranty is mentioned
+        ABOUT_B|Total price is $6,500 for 10 windows
+        ABOUT_B|Includes a 10-year warranty on all windows
+        DIFF|financial|Total price|$5,000|$6,500|60
+        DIFF|coverage|Warranty|No warranty mentioned|10-year warranty included|70
 
-        If the documents ARE the same type and comparable, also include direct differences:
-        DIFF|[category]|[what is different]|[document A says]|[document B says]|[severity 0-100]
-        Categories: financial, legal, date, term, obligation, coverage, other
-
-        Do not use markdown formatting. Write naturally.
+        Now write your actual analysis of the two documents above. Do not copy the examples. \
+        Write real content based on what is actually in the documents. \
+        Do not include brackets or placeholder text. Do not use markdown formatting.
         """
     }
 
