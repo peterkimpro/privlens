@@ -193,12 +193,18 @@ public final class AIAnalysisService: AIAnalysisServiceProtocol, Sendable {
     }
 
     private func buildLegacyPrompt(for type: DocumentType, text: String) -> String {
+        let typeLine: String
+        if type != .unknown {
+            typeLine = "Document Type: \(type.displayName)\n\n"
+        } else {
+            typeLine = "First, determine what type of document this is based on its content.\n\n"
+        }
+
         return """
         You are a document analysis assistant specializing in consumer protection. \
         Analyze the following document text and provide a structured analysis.
 
-        Document Type: \(type.displayName)
-
+        \(typeLine)\
         General instructions:
         - Provide a concise 2-3 sentence summary
         - Extract key insights that are actionable and specific

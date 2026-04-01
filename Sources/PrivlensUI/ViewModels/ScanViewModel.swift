@@ -61,18 +61,11 @@ public final class ScanViewModel {
                 return
             }
 
-            // Classify (smart AI detection by default, keyword fallback if disabled)
-            processingStatus = "Classifying document..."
-            let docType: DocumentType
-            if useSmartDetection {
-                docType = await smartClassifier.classify(text: trimmedText)
-            } else {
-                docType = keywordClassifier.classify(text: trimmedText)
-            }
-
-            // Analyze with AI (retries automatically if safety filter triggers)
+            // Analyze with AI — let the AI determine what the document is
+            // rather than pre-classifying (pre-classification was unreliable
+            // and biased the AI summary with wrong document types)
             processingStatus = "Analyzing with on-device AI..."
-            let result = try await aiService.analyzeDocument(text: trimmedText, type: docType)
+            let result = try await aiService.analyzeDocument(text: trimmedText, type: .unknown)
 
             // Generate thumbnail from first page
             var thumbnailData: Data?
@@ -97,7 +90,7 @@ public final class ScanViewModel {
             let document = Document(
                 title: autoTitle,
                 rawText: trimmedText,
-                documentType: docType,
+                documentType: result.documentType,
                 analysisResult: result.summary,
                 redFlags: result.redFlags,
                 keyInsights: result.keyInsights,
